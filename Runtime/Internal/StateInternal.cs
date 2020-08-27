@@ -8,14 +8,40 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc cref="IState"/>
 	internal interface IStateInternal : IState, IEquatable<IStateInternal>
 	{
+		/// <summary>
+		/// The unique value identifying this state
+		/// </summary>
 		uint Id { get; }
+		/// <summary>
+		/// The string representation identifying this state
+		/// </summary>
 		string Name { get; }
+		/// <summary>
+		/// The layer in the nested setup this state is in. If in the root then the value will be 0
+		/// </summary>
 		uint RegionLayer { get; }
+		/// <summary>
+		/// The stack trace when this setup was created. Relevant for debugging purposes
+		/// </summary>
 		string CreationStackTrace { get; }
 		
+		/// <summary>
+		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStatechart"/> and returns
+		/// the processed <see cref="IStateInternal"/> as an output
+		/// </summary>
 		IStateInternal Trigger(IStatechartEvent statechartEvent);
+		/// <summary>
+		/// Marks the initial moment of this state as the new current state in the <see cref="IStatechart"/>
+		/// </summary>
 		void Enter();
+		/// <summary>
+		/// Marks the final moment of this state as the current state in the <see cref="IStatechart"/>
+		/// </summary>
 		void Exit();
+		/// <summary>
+		/// Validates this state to any potential bad setup schemes. Relevant to debug purposes.
+		/// It requires the <see cref="IStatechart"/> to run at runtime.
+		/// </summary>
 		void Validate();
 	}
 
@@ -27,13 +53,13 @@ namespace GameLovers.Statechart.Internal
 		private static uint _idRef;
 
 		/// <inheritdoc />
-		public uint Id { get; private set; }
+		public uint Id { get; }
 		/// <inheritdoc />
-		public string Name { get; private set; }
+		public string Name { get; }
 		/// <inheritdoc />
-		public uint RegionLayer { get { return _stateFactory.RegionLayer; } }
+		public uint RegionLayer => _stateFactory.RegionLayer;
 		/// <inheritdoc />
-		public string CreationStackTrace { get; private set; }
+		public string CreationStackTrace { get; }
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{
@@ -107,28 +133,35 @@ namespace GameLovers.Statechart.Internal
 			return nextState;
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IStateInternal stateInternal)
 		{
 			return stateInternal != null && Id == stateInternal.Id;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
 			return obj is IStateInternal stateBase && Equals(stateBase);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return (int) Id;
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return Name;
 		}
 
+		/// <inheritdoc />
 		public abstract void Enter();
+		/// <inheritdoc />
 		public abstract void Exit();
+		/// <inheritdoc />
 		public abstract void Validate();
 
 		protected abstract ITransitionInternal OnTrigger(IStatechartEvent statechartEvent);

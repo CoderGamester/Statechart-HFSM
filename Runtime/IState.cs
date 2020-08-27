@@ -64,7 +64,7 @@ namespace GameLovers.Statechart
 	#region States
 
 	/// <summary>
-	/// An initial pseudostate represents a starting point for a region, that is, the point from which execution when its contained,
+	/// An initial pseudo state represents a starting point for a region, that is, the point from which execution when its contained,
 	/// the behavior will commence when the region is entered.
 	/// A <see cref="IStatechart"/> can have only one initial state in a single region, but can have more initial states in nested regions.
 	/// </summary>
@@ -96,10 +96,12 @@ namespace GameLovers.Statechart
 	public interface INestState : IStateEnter, IStateExit, IStateEvent
 	{
 		/// <summary>
-		/// Creates a new nested region with a specific <paramref name="setup"/>
-		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the nested region is finalized
+		/// Creates a new nested region with a specific <paramref name="setup"/>.
+		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the nested region is finalized.
+		/// If the given <paramref name="executeFinal"/> is true, then the internal <see cref="IFinalState"/> will
+		/// always be executed when leaving the nested state from an event of this state.
 		/// </summary>
-		ITransition Nest(Action<IStateFactory> setup);
+		ITransition Nest(Action<IStateFactory> setup, bool executeFinal = false);
 	}
 
 	/// <summary>
@@ -139,9 +141,12 @@ namespace GameLovers.Statechart
 		/// Splits the state into two new nested parallel regions that will be active at the same time
 		/// Setup both nested region's <paramref name="setup1"/> and <paramref name="setup2"/> to have the split properly configured
 		/// It will return the created <see cref="ITransition"/> that will triggered when both nested regions finalize their execution
-		/// by both regions reaching their respectively <see cref="IFinalState"/>
+		/// by both regions reaching their respectively <see cref="IFinalState"/>.
+		/// If the given <paramref name="executeFinal1"/> or <paramref name="executeFinal2"/> or is true,
+		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event of this state.
 		/// </summary>
-		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2);
+		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1 = false,
+		                  bool executeFinal2 = false);
 	}
 
 	/// <summary>

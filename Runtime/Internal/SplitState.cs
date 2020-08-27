@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -8,15 +9,19 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc cref="ISplitState"/>
 	internal class SplitState : StateInternal, ISplitState
 	{
+		private readonly IList<Action> _onEnter = new List<Action>();
+		private readonly IList<Action> _onExit = new List<Action>();
+		private readonly IDictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
+		
 		private ITransitionInternal _transition;
 		private IStateInternal _initialInnerState1;
 		private IStateInternal _initialInnerState2;
 		private IStateInternal _currentInnerState1;
 		private IStateInternal _currentInnerState2;
-		
-		private readonly IList<Action> _onEnter = new List<Action>();
-		private readonly IList<Action> _onExit = new List<Action>();
-		private readonly IDictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
+		private IStateFactoryInternal _nestStateFactory1;
+		private IStateFactoryInternal _nestStateFactory2;
+		private bool _executeFinal1;
+		private bool _executeFinal2;
 
 		public SplitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
@@ -37,6 +42,19 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
+			_currentInnerState1.Exit();
+			_currentInnerState2.Exit();
+			
+			if (_executeFinal1 && !(_currentInnerState1 is FinalState) && !(_currentInnerState1 is LeaveState))
+			{
+				_nestStateFactory1.FinalState?.Enter();
+			}
+			
+			if (_executeFinal2 && !(_currentInnerState2 is FinalState) && !(_currentInnerState2 is LeaveState))
+			{
+				_nestStateFactory2.FinalState?.Enter();
+			}
+			
 			foreach (var action in _onExit)
 			{
 				action();
@@ -49,10 +67,20 @@ namespace GameLovers.Statechart.Internal
 #if UNITY_EDITOR || DEBUG
 			if (_initialInnerState1 == null || _initialInnerState2 == null)
 			{
-				throw new MissingMemberException($"Nest state {Name} doesn't have the nested setup defined correctly");
+				throw new MissingMemberException($"Split state {Name} doesn't have the nested setup defined correctly");
 			}
 
-			if (_transition.TargetState.Id == Id)
+			if (_transition.TargetState == null && _events.Count == 0)
+			{
+				Debug.LogWarning($"Split state {Name} doesn't have any transition to a target state");
+			}
+
+			if (_nestStateFactory1.FinalState == null || _nestStateFactory2.FinalState == null)
+			{
+				Debug.LogWarning($"Nest state {Name} doesn't have the nested setup defined with final states");
+			}
+
+			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
 			}
@@ -105,29 +133,27 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2)
+		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1 = false,
+		                         bool executeFinal2 = false)
 		{
 			if (_transition != null)
 			{
 				throw new InvalidOperationException($"State {Name} is nesting multiple times");
 			}
 
-			var nestStateFactory1 = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
-			var nestStateFactory2 = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
+			_nestStateFactory1 = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
+			_nestStateFactory2 = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
 
-			setup1(nestStateFactory1);
-			setup2(nestStateFactory2);
+			setup1(_nestStateFactory1);
+			setup2(_nestStateFactory2);
 
-			if (nestStateFactory1.FinalState == null || nestStateFactory2.FinalState == null)
-			{
-				throw new MissingMemberException($"Nest state {Name} doesn't have the nested setup defined with final states");
-			}
+			_stateFactory.Add(_nestStateFactory1.States);
+			_stateFactory.Add(_nestStateFactory2.States);
 
-			_stateFactory.Add(nestStateFactory1.States);
-			_stateFactory.Add(nestStateFactory2.States);
-
-			_initialInnerState1 = nestStateFactory1.InitialState;
-			_initialInnerState2 = nestStateFactory2.InitialState;
+			_executeFinal1 = executeFinal1;
+			_executeFinal2 = executeFinal2;
+			_initialInnerState1 = _nestStateFactory1.InitialState;
+			_initialInnerState2 = _nestStateFactory2.InitialState;
 			_transition = new Transition();
 
 			return _transition;
@@ -136,11 +162,8 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
-			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out ITransitionInternal transition))
+			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
-				_currentInnerState1.Exit();
-				_currentInnerState2.Exit();
-
 				return transition;
 			}
 
@@ -163,11 +186,12 @@ namespace GameLovers.Statechart.Internal
 				return _transition;
 			}
 
-			if (_currentInnerState1 is LeaveState)
+			if (_currentInnerState1 is LeaveState leaveState)
 			{
-				return ((LeaveState)_currentInnerState1).LeaveTransition;
+				return leaveState.LeaveTransition;
 			}
-			else if(_currentInnerState2 is LeaveState state)
+			
+			if(_currentInnerState2 is LeaveState state)
 			{
 				return state.LeaveTransition;
 			}

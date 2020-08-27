@@ -26,9 +26,9 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public IStateInternal TargetState { get; private set; }
 		/// <inheritdoc />
-		public bool HasCondition { get { return _condition.Count > 0; } }
-		/// <inheritdoc />
 		public string CreationStackTrace { get; private set; }
+		/// <inheritdoc />
+		public bool HasCondition => _condition.Count > 0;
 
 		/// <inheritdoc />
 		public bool CheckCondition()

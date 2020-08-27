@@ -17,7 +17,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Enter()
 		{
-			for(int i = 0; i < _onEnter.Count; i++)
+			for(var i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
 			}
