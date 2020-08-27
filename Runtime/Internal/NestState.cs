@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GameLovers.Statechart;
+using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -9,14 +10,16 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc cref="INestState"/>
 	internal class NestState : StateInternal, INestState
 	{
-		private ITransitionInternal _transition;
-		private IStateInternal _initialInnerState;
-		private IStateInternal _currentInnerState;
-		
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
 		private readonly Dictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
-
+		
+		private ITransitionInternal _transition;
+		private IStateInternal _initialInnerState;
+		private IStateInternal _currentInnerState;
+		private IStateFactoryInternal _nestStateFactory;
+		private bool _executeFinal;
+		
 		public NestState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
 		}
@@ -26,7 +29,7 @@ namespace GameLovers.Statechart.Internal
 		{
 			_currentInnerState = _initialInnerState;
 
-			for(int i = 0; i < _onEnter.Count; i++)
+			for(var i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
 			}
@@ -35,7 +38,14 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			for(int i = 0; i < _onExit.Count; i++)
+			_currentInnerState.Exit();
+			
+			if (_executeFinal && !(_currentInnerState is FinalState) && !(_currentInnerState is LeaveState))
+			{
+				_nestStateFactory.FinalState?.Enter();
+			}
+			
+			for(var i = 0; i < _onExit.Count; i++)
 			{
 				_onExit[i]?.Invoke();
 			}
@@ -50,7 +60,12 @@ namespace GameLovers.Statechart.Internal
 				throw new MissingMemberException($"Nest state {Name} doesn't have a nested setup defined");
 			}
 
-			if (_transition.TargetState.Id == Id)
+			if (_transition.TargetState == null && _events.Count == 0)
+			{
+				Debug.LogWarning($"Nest state {Name} doesn't have any transition to a target state");
+			}
+
+			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
 			}
@@ -88,20 +103,21 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Nest(Action<IStateFactory> setup)
+		public ITransition Nest(Action<IStateFactory> setup, bool executeFinal = false)
 		{
 			if (_transition != null)
 			{
 				throw new InvalidOperationException($"State {Name} is nesting multiple times");
 			}
 
-			var nestStateFactory = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
+			_nestStateFactory = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
 
-			setup(nestStateFactory);
+			setup(_nestStateFactory);
 
-			_stateFactory.Add(nestStateFactory.States);
+			_stateFactory.Add(_nestStateFactory.States);
 
-			_initialInnerState = nestStateFactory.InitialState;
+			_executeFinal = executeFinal;
+			_initialInnerState = _nestStateFactory.InitialState;
 			_transition = new Transition();
 
 			return _transition;
@@ -110,10 +126,8 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
-			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out ITransitionInternal transition))
+			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
-				_currentInnerState.Exit();
-
 				return transition;
 			}
 

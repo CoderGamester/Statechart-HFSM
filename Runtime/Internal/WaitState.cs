@@ -53,7 +53,12 @@ namespace GameLovers.Statechart.Internal
 				throw new MissingMethodException($"The state {Name} doesn't have a waiting activity");
 			}
 
-			if (_transition.TargetState.Id == Id)
+			if (_transition.TargetState == null && _events.Count == 0)
+			{
+				throw new MissingMemberException($"The state {Name} doesn't have a target state in it's transition");
+			}
+
+			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
 			}

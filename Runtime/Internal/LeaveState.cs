@@ -10,7 +10,7 @@ namespace GameLovers.Statechart.Internal
 	{
 		private readonly IList<Action> _onEnter = new List<Action>();
 		
-		public ITransitionInternal LeaveTransition { get; private set; }
+		internal ITransitionInternal LeaveTransition { get; private set; }
 
 		public LeaveState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
