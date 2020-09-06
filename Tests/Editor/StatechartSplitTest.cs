@@ -58,6 +58,31 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_WithoutTarget()
+		{
+			var statechart = new Statechart(Setup);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(2).OnTransitionCall(0);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(1).OnTransitionCall(4);
+			_caller.Received(2).InitialOnExitCall(0);
+			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.Received(2).FinalOnEnterCall(0);
+			_caller.DidNotReceive().FinalOnEnterCall(1);
+
+			void Setup(IStateFactory factory)
+			{
+				SetupSplit_WithoutTarget(factory, _event2, SetupSimple, SetupSimple, false);
+			}
+		}
+
+		[Test]
 		public void InnerEventTrigger()
 		{
 			var statechart = new Statechart(Setup);
@@ -379,6 +404,24 @@ namespace GameLoversEditor.StateChart.Tests
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
 			split.Split(setup1, setup2, executeFinal, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
+			split.OnExit(() => _caller.StateOnExitCall(1));
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(1));
+		}
+
+		private void SetupSplit_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> setup1, 
+		                        Action<IStateFactory> setup2, bool executeFinal)
+		{
+			var initial = factory.Initial("Initial");
+			var split = factory.Split("Split");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(2)).Target(split);
+			initial.OnExit(() => _caller.InitialOnExitCall(1));
+
+			split.OnEnter(() => _caller.StateOnEnterCall(1));
+			split.Split(setup1, setup2, executeFinal, executeFinal).OnTransition(() => _caller.OnTransitionCall(3));
+			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
 			split.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(1));

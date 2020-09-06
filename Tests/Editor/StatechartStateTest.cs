@@ -54,6 +54,27 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_TransitionWithoutTarget()
+		{
+			var statechart = new Statechart(SetupEventState_WithoutTarget);
+
+			statechart.Run();
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+
+			statechart.Trigger(_event1);
+
+			_caller.Received().OnTransitionCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+		}
+
+		[Test]
 		public void TriggerNotConfiguredEvent_DoesNothing()
 		{
 			var statechart = new Statechart(SetupEventState);
@@ -136,6 +157,22 @@ namespace GameLoversEditor.StateChart.Tests
 
 			state.OnEnter(() => _caller.StateOnEnterCall(1));
 			state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+			state.OnExit(() => _caller.StateOnExitCall(1));
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+		}
+
+		private void SetupEventState_WithoutTarget(IStateFactory factory)
+		{
+			var initial = factory.Initial("Initial");
+			var state = factory.State("State");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
+			initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+			state.OnEnter(() => _caller.StateOnEnterCall(1));
+			state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1));
 			state.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));

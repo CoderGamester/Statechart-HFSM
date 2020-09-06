@@ -35,6 +35,11 @@ namespace GameLovers.Statechart.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
+			if(LeaveTransition?.TargetState == null)
+			{
+				throw new MissingMemberException($"The leave state {Name} is not pointing to any state");
+			}
+			
 			if(LeaveTransition.TargetState.RegionLayer != RegionLayer - 1)
 			{
 				throw new InvalidOperationException($"The leave state {Name} is not pointing to a state in the above region layer");

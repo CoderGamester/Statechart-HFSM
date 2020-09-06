@@ -70,16 +70,6 @@ namespace GameLovers.Statechart.Internal
 				throw new MissingMemberException($"Split state {Name} doesn't have the nested setup defined correctly");
 			}
 
-			if (_transition.TargetState == null && _events.Count == 0)
-			{
-				Debug.LogWarning($"Split state {Name} doesn't have any transition to a target state");
-			}
-
-			if (_nestStateFactory1.FinalState == null || _nestStateFactory2.FinalState == null)
-			{
-				Debug.LogWarning($"Nest state {Name} doesn't have the nested setup defined with final states");
-			}
-
 			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
@@ -87,7 +77,7 @@ namespace GameLovers.Statechart.Internal
 
 			foreach (var eventTransition in _events)
 			{
-				if (eventTransition.Value.TargetState.Id == Id)
+				if (eventTransition.Value.TargetState?.Id == Id)
 				{
 					throw new InvalidOperationException($"The state {Name} with the event {eventTransition.Key.Name} is pointing to itself on transition");
 				}

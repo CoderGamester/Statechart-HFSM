@@ -89,46 +89,17 @@ namespace GameLovers.Statechart.Internal
 			{
 				return nextState;
 			}
-			
-			try
+
+			if (transition.TargetState == null)
 			{
-				if(_stateFactory.Data.Statechart.LogsEnabled)
-				{
-					Debug.LogFormat("Exiting '{0}'", Name);
-				}
-				Exit();
-			}
-			catch(Exception e)
-			{
-				throw new Exception($"Exception in the state '{Name}', OnExit() actions.\n" + CreationStackTrace, e);
+				TriggerTransition(transition);
+
+				return null;
 			}
 
-			try
-			{
-				if (_stateFactory.Data.Statechart.LogsEnabled)
-				{
-					Debug.LogFormat("Transition '{0}' -> '{1}'", Name, nextState.Name);
-				}
-				transition.TriggerTransition();
-			}
-			catch (Exception e)
-			{
-				throw new Exception(
-					$"Exception in the transition '{Name}' -> '{nextState.Name}', TriggerTransition() actions.\n" + transition.CreationStackTrace, e);
-			}
-
-			try
-			{
-				if (_stateFactory.Data.Statechart.LogsEnabled)
-				{
-					Debug.LogFormat("Entering '{0}'", nextState.Name);
-				}
-				nextState.Enter();
-			}
-			catch (Exception e)
-			{
-				throw new Exception($"Exception in the state {nextState.Name}, OnEnter() actions.\n" + CreationStackTrace, e);
-			}
+			TriggerExit();
+			TriggerTransition(transition);
+			TriggerEnter(nextState);
 
 			return nextState;
 		}
@@ -165,5 +136,54 @@ namespace GameLovers.Statechart.Internal
 		public abstract void Validate();
 
 		protected abstract ITransitionInternal OnTrigger(IStatechartEvent statechartEvent);
+
+		private void TriggerEnter(IStateInternal state)
+		{
+			try
+			{
+				if (_stateFactory.Data.Statechart.LogsEnabled)
+				{
+					Debug.LogFormat("Entering '{0}'", state.Name);
+				}
+				state.Enter();
+			}
+			catch (Exception e)
+			{
+				throw new Exception($"Exception in the state {state.Name}, OnEnter() actions.\n" + CreationStackTrace, e);
+			}
+		}
+
+		private void TriggerExit()
+		{
+			try
+			{
+				if(_stateFactory.Data.Statechart.LogsEnabled)
+				{
+					Debug.LogFormat("Exiting '{0}'", Name);
+				}
+				Exit();
+			}
+			catch(Exception e)
+			{
+				throw new Exception($"Exception in the state '{Name}', OnExit() actions.\n" + CreationStackTrace, e);
+			}
+		}
+
+		private void TriggerTransition(ITransitionInternal transition)
+		{
+			try
+			{
+				if (_stateFactory.Data.Statechart.LogsEnabled)
+				{
+					Debug.Log($"Transition '{Name}' -> '{transition.TargetState?.Name}'");
+				}
+				transition.TriggerTransition();
+			}
+			catch (Exception e)
+			{
+				throw new Exception($"Exception in the transition '{Name}' -> '{transition.TargetState?.Name}'," +
+				                    $" TriggerTransition() actions.\n{transition.CreationStackTrace}", e);
+			}
+		}
 	}
 }

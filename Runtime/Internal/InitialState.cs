@@ -35,7 +35,7 @@ namespace GameLovers.Statechart.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
-			if (_transition == null)
+			if (_transition?.TargetState == null)
 			{
 				throw new MissingMemberException($"Initial state {Name} doesn't have a transition defined, so nothing will happen");
 			}

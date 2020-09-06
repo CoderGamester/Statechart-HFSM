@@ -53,11 +53,6 @@ namespace GameLovers.Statechart.Internal
 				throw new MissingMethodException($"The state {Name} doesn't have a waiting activity");
 			}
 
-			if (_transition.TargetState == null && _events.Count == 0)
-			{
-				throw new MissingMemberException($"The state {Name} doesn't have a target state in it's transition");
-			}
-
 			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
@@ -65,7 +60,7 @@ namespace GameLovers.Statechart.Internal
 
 			foreach (var eventTransition in _events)
 			{
-				if (eventTransition.Value.TargetState.Id == Id)
+				if (eventTransition.Value.TargetState?.Id == Id)
 				{
 					throw new InvalidOperationException(
 						$"The state {Name} with the event {eventTransition.Key.Name} is pointing to itself on transition");
@@ -114,15 +109,9 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public ITransition WaitingFor(Action<IWaitActivity> waitAction)
 		{
-			if (waitAction == null)
-			{
-				throw new NullReferenceException($"The state {Name} cannot have a null wait action");
-			}
-
+			_waitAction = waitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
 			_waitingActivity = new WaitActivity(_stateFactory.Data.StateChartMoveNextCall);
 			_transition = new Transition();
-
-			_waitAction = waitAction;
 
 			return _transition;
 		}
@@ -130,7 +119,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
-			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out ITransitionInternal transition))
+			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
 				return transition;
 			}

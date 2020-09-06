@@ -54,6 +54,12 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_WithoutTarget_ThrowsException()
+		{
+			Assert.Throws<MissingMemberException>(() => new Statechart(SetupChoiceState_WithoutTarget));
+		}
+
+		[Test]
 		public void MultipleTrueConditions_PicksFirstTransition()
 		{
 			var statechart = new Statechart(SetupChoiceState);
@@ -128,6 +134,24 @@ namespace GameLoversEditor.StateChart.Tests
 			choice.OnEnter(() => _caller.StateOnEnterCall(1));
 			choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
+			choice.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			choice.OnExit(() => _caller.StateOnExitCall(1));
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+		}
+
+		private void SetupChoiceState_WithoutTarget(IStateFactory factory)
+		{
+			var initial = factory.Initial("Initial");
+			var choice = factory.Choice("Choice");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(choice);
+			initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+			choice.OnEnter(() => _caller.StateOnEnterCall(1));
+			choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1));
+			choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2));
 			choice.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			choice.OnExit(() => _caller.StateOnExitCall(1));
 

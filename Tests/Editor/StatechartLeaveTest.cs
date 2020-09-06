@@ -65,6 +65,15 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_NestStateTransitionWithoutTarget_ThrowsException()
+		{
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			{
+				SetupNest(factory, SetupLeave_WithoutTarget);
+			}));
+		}
+
+		[Test]
 		public void BasicSetup_SplitState()
 		{
 			var statechart = new Statechart(Setup);
@@ -88,6 +97,15 @@ namespace GameLoversEditor.StateChart.Tests
 				state.OnEnter(() => _caller.StateOnEnterCall(2));
 				state.OnExit(() => _caller.StateOnExitCall(2));
 			}
+		}
+
+		[Test]
+		public void BasicSetup_SplitStateTransitionWithoutTarget_ThrowsException()
+		{
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			{
+				SetupSplit(factory, SetupSimple, SetupLeave_WithoutTarget);
+			}));
 		}
 
 		[Test]
@@ -203,6 +221,21 @@ namespace GameLoversEditor.StateChart.Tests
 
 			leave.OnEnter(() => _caller.StateOnEnterCall(1));
 			leave.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(leaveTarget);
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+		}
+
+		private void SetupLeave_WithoutTarget(IStateFactory factory)
+		{
+			var initial = factory.Initial("Initial");
+			var leave = factory.Leave("Leave");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(leave);
+			initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+			leave.OnEnter(() => _caller.StateOnEnterCall(1));
+			leave.Transition().OnTransition(() => _caller.OnTransitionCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
