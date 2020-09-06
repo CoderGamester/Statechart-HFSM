@@ -60,11 +60,6 @@ namespace GameLovers.Statechart.Internal
 				throw new MissingMemberException($"Nest state {Name} doesn't have a nested setup defined");
 			}
 
-			if (_transition.TargetState == null && _events.Count == 0)
-			{
-				Debug.LogWarning($"Nest state {Name} doesn't have any transition to a target state");
-			}
-
 			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
@@ -72,7 +67,7 @@ namespace GameLovers.Statechart.Internal
 
 			foreach (var eventTransition in _events)
 			{
-				if (eventTransition.Value.TargetState.Id == Id)
+				if (eventTransition.Value.TargetState?.Id == Id)
 				{
 					throw new InvalidOperationException($"The state {Name} with the event {eventTransition.Key.Name} is pointing to itself on transition");
 				}

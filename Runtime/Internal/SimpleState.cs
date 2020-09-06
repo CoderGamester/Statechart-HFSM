@@ -40,7 +40,7 @@ namespace GameLovers.Statechart.Internal
 #if UNITY_EDITOR || DEBUG
 			foreach(var eventTransition in _events)
 			{
-				if (eventTransition.Value.TargetState.Id == Id)
+				if (eventTransition.Value.TargetState?.Id == Id)
 				{
 					throw new InvalidOperationException($"The state {Name} with the event {eventTransition.Key.Name} is pointing to itself on transition");
 				}
@@ -88,7 +88,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
-			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out ITransitionInternal transition))
+			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
 				return transition;
 			}

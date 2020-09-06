@@ -38,13 +38,18 @@ namespace GameLovers.Statechart.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
-			int noTransitionConditionCount = 0;
+			var noTransitionConditionCount = 0;
 
 			for(var i = 0; i < _transitions.Count; i++)
 			{
 				if (!_transitions[i].HasCondition)
 				{
 					noTransitionConditionCount++;
+				}
+
+				if (_transitions[i].TargetState == null)
+				{
+					throw new MissingMemberException($"The state {Name} transition {i.ToString()} is not pointing to any state");
 				}
 
 				if (_transitions[i].TargetState.Id == Id)
@@ -60,8 +65,8 @@ namespace GameLovers.Statechart.Internal
 
 			if (noTransitionConditionCount > 1)
 			{
-				UnityEngine.Debug.LogWarningFormat("Choice state {0} has multiple transition without a condition defined." +
-												   "This will lead to improper behaviour and will pick a random transition", Name);
+				UnityEngine.Debug.LogWarning($"Choice state {Name} has multiple transition without a condition defined." +
+				                             "This will lead to improper behaviour and will pick a random transition");
 			}
 #endif
 		}

@@ -53,6 +53,26 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_WithoutTarget()
+		{
+			var statechart = new Statechart(factory => SetupNest_WithoutTarget(factory, _event2, SetupSimple, false));
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.Received().OnTransitionCall(2);
+			_caller.Received().OnTransitionCall(3);
+			_caller.Received().OnTransitionCall(4);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().InitialOnExitCall(1);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.Received().FinalOnEnterCall(0);
+			_caller.DidNotReceive().FinalOnEnterCall(1);
+		}
+
+		[Test]
 		public void InnerEventTrigger()
 		{
 			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false));
@@ -283,7 +303,8 @@ namespace GameLoversEditor.StateChart.Tests
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 
-		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup, bool executeFinal)
+		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
+		                       bool executeFinal)
 		{
 			var initial = factory.Initial("Initial");
 			var nest = factory.Nest("Nest");
@@ -295,6 +316,24 @@ namespace GameLoversEditor.StateChart.Tests
 			nest.OnEnter(() => _caller.StateOnEnterCall(1));
 			nest.Nest(nestSetup, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
+			nest.OnExit(() => _caller.StateOnExitCall(1));
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(1));
+		}
+
+		private void SetupNest_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
+		                                     bool executeFinal)
+		{
+			var initial = factory.Initial("Initial");
+			var nest = factory.Nest("Nest");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(2)).Target(nest);
+			initial.OnExit(() => _caller.InitialOnExitCall(1));
+
+			nest.OnEnter(() => _caller.StateOnEnterCall(1));
+			nest.Nest(nestSetup, executeFinal).OnTransition(() => _caller.OnTransitionCall(3));
+			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
 			nest.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(1));

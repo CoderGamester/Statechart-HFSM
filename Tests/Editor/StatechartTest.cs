@@ -43,6 +43,21 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
+		public void BasicSetup_TransitionWithoutTarget_ThrowsException()
+		{
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			{
+				var initial = factory.Initial("Initial");
+				var final = factory.Final("final");
+
+				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
+				initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+				final.OnEnter(() => _caller.FinalOnEnterCall(0));
+			}));
+		}
+
+		[Test]
 		public void InitialState_StateTransitionsLoop_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -118,6 +133,11 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+		}
+		
+		private void SetupSimple_WithoutTarget(IStateFactory factory)
+		{
+			
 		}
 	}
 }
