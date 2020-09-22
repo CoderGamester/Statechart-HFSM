@@ -53,7 +53,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimple, SetupSimple, false);
+				SetupSplit(factory, _event2, SetupSimple, SetupSimple, true, false);
 			}
 		}
 
@@ -78,7 +78,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit_WithoutTarget(factory, _event2, SetupSimple, SetupSimple, false);
+				SetupSplit_WithoutTarget(factory, _event2, SetupSimple, SetupSimple);
 			}
 		}
 
@@ -106,12 +106,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
 		[Test]
-		public void InnerEventTrigger_ExecuteFinal()
+		public void InnerEventTrigger_ExecuteFinal_SameResult()
 		{
 			var statechart = new Statechart(Setup);
 
@@ -134,7 +134,35 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, true);
+			}
+		}
+
+		[Test]
+		public void InnerEventTrigger_NotExecuteExit_SameResult()
+		{
+			var statechart = new Statechart(Setup);
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received(2).OnTransitionCall(0);
+			_caller.Received(2).OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received(2).InitialOnExitCall(0);
+			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(2).FinalOnEnterCall(0);
+			_caller.Received(1).FinalOnEnterCall(1);
+
+			void Setup(IStateFactory factory)
+			{
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, false);
 			}
 		}
 
@@ -162,7 +190,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
@@ -190,7 +218,63 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, true);
+			}
+		}
+
+		[Test]
+		public void OuterEventTrigger_NotExecuteExit()
+		{
+			var statechart = new Statechart(Setup);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(2).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(1).OnTransitionCall(4);
+			_caller.Received(2).InitialOnExitCall(0);
+			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.Received(1).FinalOnEnterCall(1);
+
+			void Setup(IStateFactory factory)
+			{
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, false);
+			}
+		}
+
+		[Test]
+		public void OuterEventTrigger_NotExecuteExit_ExecuteFinal()
+		{
+			var statechart = new Statechart(Setup);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(2).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(1).OnTransitionCall(4);
+			_caller.Received(2).InitialOnExitCall(0);
+			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(2).FinalOnEnterCall(0);
+			_caller.Received(1).FinalOnEnterCall(1);
+
+			void Setup(IStateFactory factory)
+			{
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, true);
 			}
 		}
 
@@ -218,12 +302,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, false);
+				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
 			}
 			
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
@@ -251,12 +335,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, false);
+				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event1, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event1, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
@@ -284,12 +368,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, false);
+				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
@@ -320,7 +404,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
 			}
 		}
 
@@ -340,7 +424,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimple, false);
+				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimple, true, false);
 			}
 		}
 
@@ -392,7 +476,7 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		private void SetupSplit(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> setup1, 
-		                        Action<IStateFactory> setup2, bool executeFinal)
+		                        Action<IStateFactory> setup2, bool executeExit, bool executeFinal)
 		{
 			var initial = factory.Initial("Initial");
 			var split = factory.Split("Split");
@@ -402,7 +486,20 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setup1, setup2, executeFinal, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			if (!executeExit)
+			{
+				split.SplitExitFinal(setup1, setup2, false, false, executeFinal, executeFinal)
+				     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			}
+			else if (executeFinal)
+			{
+				split.SplitFinal(setup1, setup2, true, true)
+				     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			}
+			else
+			{
+				split.Split(setup1, setup2).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			}
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			split.OnExit(() => _caller.StateOnExitCall(1));
 
@@ -410,7 +507,7 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		private void SetupSplit_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> setup1, 
-		                        Action<IStateFactory> setup2, bool executeFinal)
+		                        Action<IStateFactory> setup2)
 		{
 			var initial = factory.Initial("Initial");
 			var split = factory.Split("Split");
@@ -420,7 +517,7 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setup1, setup2, executeFinal, executeFinal).OnTransition(() => _caller.OnTransitionCall(3));
+			split.Split(setup1, setup2).OnTransition(() => _caller.OnTransitionCall(3));
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
 			split.OnExit(() => _caller.StateOnExitCall(1));
 

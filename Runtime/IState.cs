@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 // ReSharper disable CheckNamespace
 
@@ -98,10 +99,12 @@ namespace GameLovers.Statechart
 		/// <summary>
 		/// Creates a new nested region with a specific <paramref name="setup"/>.
 		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the nested region is finalized.
+		/// If the given <paramref name="executeExit"/> is true, it will executes the <see cref="IStateExit.OnExit"/> of
+		/// the current active state when this <see cref="INestState"/> is completed.
 		/// If the given <paramref name="executeFinal"/> is true, then the internal <see cref="IFinalState"/> will
-		/// always be executed when leaving the nested state from an event of this state.
+		/// be executed when leaving the nested state from an event or from a <see cref="ILeaveState"/> from the nested state.
 		/// </summary>
-		ITransition Nest(Action<IStateFactory> setup, bool executeFinal = false);
+		ITransition Nest(Action<IStateFactory> setup, bool executeExit = true, bool executeFinal = false);
 	}
 
 	/// <summary>
@@ -111,10 +114,24 @@ namespace GameLovers.Statechart
 	public interface IWaitState : IStateEnter, IStateExit, IStateEvent
 	{
 		/// <summary>
-		/// Blocks the state behaviour until the given <paramref name="waitAction"/> and it's possible child activities, are completed.
+		/// Blocks the state behaviour until the given <paramref name="waitAction"/> and it's possible child activities,
+		/// are completed.
 		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked
 		/// </summary>
 		ITransition WaitingFor(Action<IWaitActivity> waitAction);
+	}
+
+	/// <summary>
+	/// A wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
+	/// It waits for the completion of async defined <see cref="Task"/> to be completed to resume the state chart execution.
+	/// </summary>
+	public interface ITaskWaitState : IStateEnter, IStateExit
+	{
+		/// <summary>
+		/// Blocks the state behaviour until the given async <paramref name="taskAwaitAction"/> is completed.
+		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked
+		/// </summary>
+		ITransition WaitingFor(Func<Task> taskAwaitAction);
 	}
 
 	/// <summary>
@@ -133,20 +150,45 @@ namespace GameLovers.Statechart
 	/// <summary>
 	/// A nest state allows the state chart to create two new nested parallel region in the <see cref="IStatechart"/>.
 	/// The two new nested regions will run and be processed in parallel.
-	/// It will only finish the nested regions when both reach their respectively <see cref="IFinalState"/>
 	/// </summary>
 	public interface ISplitState : IStateEnter, IStateExit, IStateEvent
 	{
 		/// <summary>
-		/// Splits the state into two new nested parallel regions that will be active at the same time
-		/// Setup both nested region's <paramref name="setup1"/> and <paramref name="setup2"/> to have the split properly configured
-		/// It will return the created <see cref="ITransition"/> that will triggered when both nested regions finalize their execution
-		/// by both regions reaching their respectively <see cref="IFinalState"/>.
-		/// If the given <paramref name="executeFinal1"/> or <paramref name="executeFinal2"/> or is true,
-		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event of this state.
+		/// Splits the state into two new nested parallel regions that will be active at the same time.
+		/// Setup both nested region's <paramref name="setup1"/> and <paramref name="setup2"/> to have the split properly configured.
+		/// It will return the created <see cref="ITransition"/> that will triggered when both nested regions finalize.
+		/// their execution by both regions reaching their respectively <see cref="IFinalState"/>.
 		/// </summary>
-		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1 = false,
-		                  bool executeFinal2 = false);
+		/// <remarks>
+		/// It executes the <see cref="IStateExit.OnExit"/> of the current active states when this
+		/// <see cref="ISplitState"/> is completed.
+		/// It does not execute the <see cref="IFinalState"/> of it's nested states when this
+		/// <see cref="ISplitState"/> is completed.
+		/// </remarks>
+		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2);
+		
+		/// <inheritdoc cref="Split"/>
+		/// <remarks>
+		/// It executes the <see cref="IStateExit.OnExit"/> of the current active states when this
+		/// <see cref="ISplitState"/> is completed.
+		/// If the given <paramref name="executeFinal1"/> or <paramref name="executeFinal2"/> or is true,
+		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event
+		/// or from a <see cref="ILeaveState"/> from one of the inner states.
+		/// </remarks>
+		ITransition SplitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1, bool executeFinal2);
+		
+		/// <inheritdoc cref="Split"/>
+		/// <remarks>
+		/// If the given <paramref name="executeExit1"/> or <paramref name="executeExit2"/> or is true,
+		/// then the internal current active <see cref="IStateExit.OnExit"/> will be executed when leaving the nested state
+		/// from completion of this <see cref="ISplitState"/>.
+		/// If the given <paramref name="executeFinal1"/> or <paramref name="executeFinal2"/> or is true,
+		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event
+		/// or from a <see cref="ILeaveState"/> from one of the inner states.
+		/// </remarks>
+		ITransition SplitExitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2,
+		                           bool executeExit1, bool executeExit2,
+		                           bool executeFinal1, bool executeFinal2);
 	}
 
 	/// <summary>
