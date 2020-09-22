@@ -36,7 +36,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimple, false));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimple, true,false));
 
 			statechart.Run();
 
@@ -55,7 +55,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_WithoutTarget()
 		{
-			var statechart = new Statechart(factory => SetupNest_WithoutTarget(factory, _event2, SetupSimple, false));
+			var statechart = new Statechart(factory => SetupNest_WithoutTarget(factory, _event2, SetupSimple));
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -75,7 +75,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void InnerEventTrigger()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true,false));
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -96,9 +96,32 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
-		public void InnerEventTrigger_ExecuteFinal()
+		public void InnerEventTrigger_ExecuteFinal_SameResult()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true,false));
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.Received().OnTransitionCall(1);
+			_caller.Received().OnTransitionCall(2);
+			_caller.Received().OnTransitionCall(3);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().InitialOnExitCall(1);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.Received().StateOnExitCall(0);
+			_caller.Received().StateOnExitCall(1);
+			_caller.Received().FinalOnEnterCall(0);
+			_caller.Received().FinalOnEnterCall(1);
+		}
+
+		[Test]
+		public void InnerEventTrigger_NotExecuteExit_SameResult()
+		{
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false,false));
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -121,7 +144,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true,false));
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -144,7 +167,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger_ExecuteFinal()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true,true));
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -159,6 +182,52 @@ namespace GameLoversEditor.StateChart.Tests
 			_caller.Received().StateOnEnterCall(0);
 			_caller.Received().StateOnEnterCall(1);
 			_caller.Received().StateOnExitCall(0);
+			_caller.Received().StateOnExitCall(1);
+			_caller.Received().FinalOnEnterCall(0);
+			_caller.Received().FinalOnEnterCall(1);
+		}
+
+		[Test]
+		public void OuterEventTrigger_NotExecuteExit()
+		{
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false,false));
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received().OnTransitionCall(4);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().InitialOnExitCall(1);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.Received().FinalOnEnterCall(1);
+		}
+
+		[Test]
+		public void OuterEventTrigger_NotExecuteExit_ExecuteFinal()
+		{
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false,true));
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received().OnTransitionCall(4);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().InitialOnExitCall(1);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.Received().StateOnExitCall(1);
 			_caller.Received().FinalOnEnterCall(0);
 			_caller.Received().FinalOnEnterCall(1);
@@ -188,12 +257,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupNest(factory, _event2, SetupLayer1, false);
+				SetupNest(factory, _event2, SetupLayer1, true,false);
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupNest(factory, _event2, SetupSimpleEventState, false);
+				SetupNest(factory, _event2, SetupSimpleEventState, true,false);
 			}
 		}
 
@@ -221,19 +290,19 @@ namespace GameLoversEditor.StateChart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupNest(factory, _event2, SetupLayer1, false);
+				SetupNest(factory, _event2, SetupLayer1, true,false);
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupNest(factory, _event1, SetupSimpleEventState, false);
+				SetupNest(factory, _event1, SetupSimpleEventState, true,false);
 			}
 		}
 
 		[Test]
 		public void InnerEventTrigger_RunResetRun()
 		{
-			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, false));
+			var statechart = new Statechart(factory => SetupNest(factory, _event2, SetupSimpleEventState, true,false));
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -304,7 +373,7 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
-		                       bool executeFinal)
+		                       bool executeExit, bool executeFinal)
 		{
 			var initial = factory.Initial("Initial");
 			var nest = factory.Nest("Nest");
@@ -314,15 +383,14 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			nest.OnEnter(() => _caller.StateOnEnterCall(1));
-			nest.Nest(nestSetup, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			nest.Nest(nestSetup, executeExit, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			nest.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(1));
 		}
 
-		private void SetupNest_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
-		                                     bool executeFinal)
+		private void SetupNest_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup)
 		{
 			var initial = factory.Initial("Initial");
 			var nest = factory.Nest("Nest");
@@ -332,7 +400,7 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			nest.OnEnter(() => _caller.StateOnEnterCall(1));
-			nest.Nest(nestSetup, executeFinal).OnTransition(() => _caller.OnTransitionCall(3));
+			nest.Nest(nestSetup, true, false).OnTransition(() => _caller.OnTransitionCall(3));
 			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
 			nest.OnExit(() => _caller.StateOnExitCall(1));
 

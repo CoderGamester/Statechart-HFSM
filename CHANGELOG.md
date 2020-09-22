@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2020-09-06
+
+- Added the possibility to not execute *IStateExit.OnExit* on the current active state when leaving *IStateNest* or *IStateSplit*.
+- Added the new *ITaskWaitState* to have a waiter for Task async methods. This state cannot have event triggers, for that use *IWaitState*
+
+**Changed**
+- Separated *IStateSplit.Split* into new method *IStateSplit.SplitFinal*
+
 ## [0.3.0] - 2020-09-06
 
 - Added the possibility to trigger events without a target state. Only *InitialState*, *ChoiceState* & *LeaveState* don't allow it due to the nature of their behaviour.

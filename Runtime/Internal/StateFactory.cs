@@ -111,6 +111,16 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
+		public ITaskWaitState TaskWait(string name)
+		{
+			var state = new TaskWaitState(name, this);
+
+			States.Add(state);
+
+			return state;
+		}
+
+		/// <inheritdoc />
 		public IChoiceState Choice(string name)
 		{
 			var state = new ChoiceState(name, this);

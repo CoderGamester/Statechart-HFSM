@@ -11,22 +11,18 @@ namespace GameLovers.Statechart
 	{
 		/// <inheritdoc cref="IInitialState"/>
 		IInitialState Initial(string name);
-
 		/// <inheritdoc cref="IFinalState"/>
 		IFinalState Final(string name);
-
 		/// <inheritdoc cref="ISimpleState"/>
 		ISimpleState State(string name);
-
 		/// <inheritdoc cref="INestState"/>
 		INestState Nest(string name);
-
 		/// <inheritdoc cref="IChoiceState"/>
 		IChoiceState Choice(string name);
-
 		/// <inheritdoc cref="IWaitState"/>
 		IWaitState Wait(string name);
-
+		/// <inheritdoc cref="ITaskWaitState"/>
+		ITaskWaitState TaskWait(string name);
 		/// <inheritdoc cref="ISplitState"/>
 		ISplitState Split(string name);
 

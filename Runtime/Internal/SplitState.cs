@@ -20,6 +20,8 @@ namespace GameLovers.Statechart.Internal
 		private IStateInternal _currentInnerState2;
 		private IStateFactoryInternal _nestStateFactory1;
 		private IStateFactoryInternal _nestStateFactory2;
+		private bool _executeExit1;
+		private bool _executeExit2;
 		private bool _executeFinal1;
 		private bool _executeFinal2;
 
@@ -42,8 +44,15 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			_currentInnerState1.Exit();
-			_currentInnerState2.Exit();
+			if (_executeExit1)
+			{
+				_currentInnerState1.Exit();
+			}
+
+			if (_executeExit2)
+			{
+				_currentInnerState2.Exit();
+			}
 			
 			if (_executeFinal1 && !(_currentInnerState1 is FinalState) && !(_currentInnerState1 is LeaveState))
 			{
@@ -68,6 +77,18 @@ namespace GameLovers.Statechart.Internal
 			if (_initialInnerState1 == null || _initialInnerState2 == null)
 			{
 				throw new MissingMemberException($"Split state {Name} doesn't have the nested setup defined correctly");
+			}
+
+			if (_executeFinal1 && _nestStateFactory1.FinalState == null)
+			{
+				throw new MissingMemberException($"Split state {Name} doesn't have a final state in his first nested " +
+				                                 $"setup and is marked to execute it's {nameof(IFinalState.OnEnter)} when completed");
+			}
+
+			if (_executeFinal2 && _nestStateFactory2.FinalState == null)
+			{
+				throw new MissingMemberException($"Split state {Name} doesn't have a final state in his second nested " +
+				                                 $"setup and is marked to execute it's {nameof(IFinalState.OnEnter)} when completed");
 			}
 
 			if (_transition.TargetState?.Id == Id)
@@ -123,8 +144,21 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1 = false,
-		                         bool executeFinal2 = false)
+		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2)
+		{
+			return SplitExitFinal(setup1, setup2, true, true, false, false);
+		}
+
+		/// <inheritdoc />
+		public ITransition SplitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1,
+		                              bool executeFinal2)
+		{
+			return SplitExitFinal(setup1, setup2, true, true, executeFinal1, executeFinal2);
+		}
+
+		/// <inheritdoc />
+		public ITransition SplitExitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeExit1, 
+		                                  bool executeExit2, bool executeFinal1, bool executeFinal2)
 		{
 			if (_transition != null)
 			{
@@ -140,6 +174,8 @@ namespace GameLovers.Statechart.Internal
 			_stateFactory.Add(_nestStateFactory1.States);
 			_stateFactory.Add(_nestStateFactory2.States);
 
+			_executeExit1 = executeExit1;
+			_executeExit2 = executeExit2;
 			_executeFinal1 = executeFinal1;
 			_executeFinal2 = executeFinal2;
 			_initialInnerState1 = _nestStateFactory1.InitialState;
