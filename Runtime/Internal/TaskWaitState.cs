@@ -27,9 +27,6 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Enter()
 		{
-			_initialized = false;
-			_completed = false;
-
 			for(int i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
@@ -43,6 +40,9 @@ namespace GameLovers.Statechart.Internal
 			{
 				_onExit[i]?.Invoke();
 			}
+			
+			_initialized = false;
+			_completed = false;
 		}
 
 		/// <inheritdoc />
@@ -124,7 +124,11 @@ namespace GameLovers.Statechart.Internal
 
 			_completed = true;
 			
-			_stateFactory.Data.StateChartMoveNextCall(null);
+			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
+			if (_initialized)
+			{
+				_stateFactory.Data.StateChartMoveNextCall(null);
+			}
 		}
 	}
 }

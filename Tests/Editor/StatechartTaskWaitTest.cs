@@ -52,7 +52,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_blocker = false;
 
-			await Task.Delay(11);
+			await Task.Delay(10);
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
@@ -81,7 +81,7 @@ namespace GameLoversEditor.StateChart.Tests
 		{
 			while (_blocker)
 			{
-				await Task.Delay(10);
+				await Task.Delay(1);
 			}
 		}
 
