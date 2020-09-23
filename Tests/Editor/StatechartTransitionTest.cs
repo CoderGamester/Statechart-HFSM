@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace GameLoversEditor.StateChart.Tests
 {
 	[TestFixture]
-	public class StatechartTest
+	public class StatechartTransitionTest
 	{
 		/// <summary>
 		/// Mocking interface to check method calls received
@@ -38,7 +38,10 @@ namespace GameLoversEditor.StateChart.Tests
 			statechart.Run();
 
 			_caller.Received().OnTransitionCall(0);
+			_caller.Received().OnTransitionCall(1);
 			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.Received().StateOnExitCall(0);
 			_caller.Received().FinalOnEnterCall(0);
 		}
 
@@ -49,78 +52,55 @@ namespace GameLoversEditor.StateChart.Tests
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
+				var transition = factory.Transition("Transition");
 
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
 				initial.OnExit(() => _caller.InitialOnExitCall(0));
+			
+				transition.OnEnter(() => _caller.StateOnEnterCall(0));
+				transition.Transition().OnTransition(() => _caller.OnTransitionCall(1));
+				transition.OnExit(() => _caller.StateOnExitCall(0));
 
 				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
 		[Test]
-		public void InitialState_StateTransitionsLoop_ThrowsException()
-		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
-			{
-				var initial = factory.Initial("Initial");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(initial);
-			}));
-		}
-
-		[Test]
-		public void InitialState_MultipleTransitions_ThrowsException()
-		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
-			{
-				var initial = factory.Initial("Initial");
-				var final = factory.Final("Final");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(final);
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
-			}));
-		}
-
-		[Test]
-		public void NoInitialState_ThrowsException()
+		public void BasicSetup_TransitionWithoutTransition_ThrowsException()
 		{
 			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
+				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
+				var transition = factory.Transition("Transition");
+
+				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
+				initial.OnExit(() => _caller.InitialOnExitCall(0));
+			
+				transition.OnEnter(() => _caller.StateOnEnterCall(0));
+				transition.OnExit(() => _caller.StateOnExitCall(0));
 
 				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
 		[Test]
-		public void MultipleInitialStates_ThrowsException()
-		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
-			{
-				var initial1 = factory.Initial("Initial1");
-				var initial2 = factory.Initial("Initial2");
-
-				initial1.OnExit(() => _caller.InitialOnExitCall(1));
-				initial2.OnExit(() => _caller.InitialOnExitCall(2));
-			}));
-		}
-
-		[Test]
-		public void MultipleFinalState_ThrowsException()
+		public void StateTransitionsLoop_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
-				var final1 = factory.Final("final1");
-				var final2 = factory.Final("final2");
+				var final = factory.Final("final");
+				var transition = factory.Transition("Transition");
 
+				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(transition);
 				initial.OnExit(() => _caller.InitialOnExitCall(0));
+			
+				transition.OnEnter(() => _caller.StateOnEnterCall(0));
+				transition.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(transition);
+				transition.OnExit(() => _caller.StateOnExitCall(0));
 
-				final1.OnEnter(() => _caller.FinalOnEnterCall(1));
-				final2.OnEnter(() => _caller.FinalOnEnterCall(2));
+				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 		
@@ -128,9 +108,14 @@ namespace GameLoversEditor.StateChart.Tests
 		{
 			var initial = factory.Initial("Initial");
 			var final = factory.Final("final");
+			var transition = factory.Transition("Transition");
 
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(final);
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(transition);
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
+			
+			transition.OnEnter(() => _caller.StateOnEnterCall(0));
+			transition.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+			transition.OnExit(() => _caller.StateOnExitCall(0));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}

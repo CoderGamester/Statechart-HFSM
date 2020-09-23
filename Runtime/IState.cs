@@ -83,6 +83,14 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
+	/// A transition state models a non-blocker situation in the execution of the <see cref="IStatechart"/> behavior.
+	/// Represents a non-blocking point on the state chart execution that automatically continues to the target state
+	/// </summary>
+	public interface ITransitionState : IStateEnter, IStateExit, IStateTransition
+	{
+	}
+
+	/// <summary>
 	/// A simple state models a situation in the execution of the <see cref="IStatechart"/> behavior.
 	/// Represents a blocking point on the state chart execution waiting for an event trigger to continue
 	/// </summary>
