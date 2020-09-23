@@ -36,7 +36,7 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 
 		[Test]
-		public async void BasicSetup()
+		public void BasicSetup()
 		{
 			var statechart = new Statechart(factory => SetupTaskWaitState(factory, TaskWaitAction));
 
@@ -52,12 +52,61 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_blocker = false;
 
-			await Task.Delay(10);
+			Task.Run(async () =>
+			{
+				await Task.Delay(10);
+				
+				_caller.Received().OnTransitionCall(1);
+				_caller.DidNotReceive().OnTransitionCall(2);
+				_caller.Received().StateOnExitCall(1);
+				_caller.Received().FinalOnEnterCall(0);
+			});
+		}
 
-			_caller.Received().OnTransitionCall(1);
+		[Test]
+		public void EventTrigger()
+		{
+			var statechart = new Statechart(factory => SetupTaskWaitState(factory, TaskWaitAction));
+
+			statechart.Run();
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.Received().StateOnExitCall(1);
-			_caller.Received().FinalOnEnterCall(0);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+
+			statechart.Trigger(_event1);
+			
+			_blocker = false;
+
+			Task.Run(async () =>
+			{
+				await Task.Delay(10);
+				
+				_caller.Received().OnTransitionCall(1);
+				_caller.Received().OnTransitionCall(2);
+				_caller.Received().StateOnExitCall(1);
+				_caller.Received().FinalOnEnterCall(0);
+			});
+		}
+
+		[Test]
+		public void MissingTaskWaiter_ThrowsException()
+		{
+			Assert.Throws<MissingMethodException>(() => new Statechart(factory =>
+			{
+				var initial = factory.Initial("Initial");
+				var waiting = factory.TaskWait("Waiting");
+
+				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(waiting);
+				initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+				waiting.OnEnter(() => _caller.StateOnEnterCall(1));
+				waiting.OnExit(() => _caller.StateOnExitCall(1));
+			}));
 		}
 
 		[Test]
@@ -74,6 +123,27 @@ namespace GameLoversEditor.StateChart.Tests
 				waiting.OnEnter(() => _caller.StateOnEnterCall(1));
 				waiting.WaitingFor(TaskWaitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(waiting);
 				waiting.OnExit(() => _caller.StateOnExitCall(1));
+			}));
+		}
+
+		[Test]
+		public void EventTrigger_WithTarget_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var initial = factory.Initial("Initial");
+				var waiting = factory.TaskWait("Waiting");
+				var final = factory.Final("final");
+
+				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(waiting);
+				initial.OnExit(() => _caller.InitialOnExitCall(0));
+
+				waiting.OnEnter(() => _caller.StateOnEnterCall(1));
+				waiting.WaitingFor(TaskWaitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+				waiting.Event(_event1).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
+				waiting.OnExit(() => _caller.StateOnExitCall(1));
+
+				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
@@ -96,6 +166,7 @@ namespace GameLoversEditor.StateChart.Tests
 
 			waiting.OnEnter(() => _caller.StateOnEnterCall(1));
 			waiting.WaitingFor(waitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+			waiting.Event(_event1).OnTransition(() => _caller.OnTransitionCall(2));
 			waiting.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));

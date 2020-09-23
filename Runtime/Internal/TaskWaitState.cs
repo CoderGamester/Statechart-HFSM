@@ -61,10 +61,10 @@ namespace GameLovers.Statechart.Internal
 
 			foreach (var eventTransition in _events)
 			{
-				if (eventTransition.Value.TargetState?.Id == Id)
+				if (eventTransition.Value.TargetState != null)
 				{
-					throw new InvalidOperationException(
-						$"The state {Name} with the event {eventTransition.Key.Name} is pointing to itself on transition");
+					throw new InvalidOperationException($"The task await state {Name} cannot have event transitions " +
+					                                    $"with target states. Use {nameof(IWaitState)} for that purpose");
 				}
 			}
 #endif
@@ -90,6 +90,21 @@ namespace GameLovers.Statechart.Internal
 			}
 
 			_onExit.Add(action);
+		}
+
+		/// <inheritdoc />
+		public ITransition Event(IStatechartEvent statechartEvent)
+		{
+			if (statechartEvent == null)
+			{
+				throw new NullReferenceException($"The state {Name} cannot have a null event");
+			}
+
+			var transition = new Transition();
+
+			_events.Add(statechartEvent, transition);
+
+			return transition;
 		}
 
 		/// <inheritdoc />

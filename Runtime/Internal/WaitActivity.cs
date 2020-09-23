@@ -18,9 +18,8 @@ namespace GameLovers.Statechart.Internal
 	{
 		private static uint _idRef;
 
-		private Action<IStatechartEvent> _onComplete;
-		private Action<uint> _innerOnComplete;
-
+		private readonly Action<IStatechartEvent> _onComplete;
+		private readonly Action<uint> _innerOnComplete;
 		private readonly Dictionary<uint, bool> _activities = new Dictionary<uint, bool>();
 
 		/// <inheritdoc />

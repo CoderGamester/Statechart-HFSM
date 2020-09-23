@@ -130,10 +130,10 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
+	/// A task wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
 	/// It waits for the completion of async defined <see cref="Task"/> to be completed to resume the state chart execution.
 	/// </summary>
-	public interface ITaskWaitState : IStateEnter, IStateExit
+	public interface ITaskWaitState : IStateEnter, IStateExit, IStateEvent
 	{
 		/// <summary>
 		/// Blocks the state behaviour until the given async <paramref name="taskAwaitAction"/> is completed.
