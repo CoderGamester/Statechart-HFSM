@@ -15,6 +15,8 @@ namespace GameLovers.Statechart
 		IFinalState Final(string name);
 		/// <inheritdoc cref="ISimpleState"/>
 		ISimpleState State(string name);
+		/// <inheritdoc cref="ITransition"/>
+		ITransitionState Transition(string name);
 		/// <inheritdoc cref="INestState"/>
 		INestState Nest(string name);
 		/// <inheritdoc cref="IChoiceState"/>

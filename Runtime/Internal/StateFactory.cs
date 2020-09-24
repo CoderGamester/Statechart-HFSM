@@ -91,6 +91,16 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
+		public ITransitionState Transition(string name)
+		{
+			var state = new TransitionState(name, this);
+
+			States.Add(state);
+
+			return state;
+		}
+
+		/// <inheritdoc />
 		public INestState Nest(string name)
 		{
 			var state = new NestState(name, this);

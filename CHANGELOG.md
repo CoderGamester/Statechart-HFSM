@@ -4,7 +4,17 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - 2020-09-06
+## [0.5.0] - 2020-09-24
+
+- Added new *ITransitionState* that acts as a non-blocker state between 2 different states
+
+**Changed**
+- Added *IStateEvent* to *ITaskWaitState* to allow event evocation 
+
+**Fixed**
+- Fixed potential issue when *ITaskWaitState* & *WaitState* would execute it's flow multiple times when a *INestState* or *ISplitState* would trigger an outside exit event	
+
+## [0.4.0] - 2020-09-22
 
 - Added the possibility to not execute *IStateExit.OnExit* on the current active state when leaving *IStateNest* or *IStateSplit*.
 - Added the new *ITaskWaitState* to have a waiter for Task async methods. This state cannot have event triggers, for that use *IWaitState*

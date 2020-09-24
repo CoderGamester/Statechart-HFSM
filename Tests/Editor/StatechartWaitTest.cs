@@ -23,6 +23,7 @@ namespace GameLoversEditor.StateChart.Tests
 		}
 		
 		private readonly IStatechartEvent _event1 = new StatechartEvent("Event1");
+		private readonly IStatechartEvent _event2 = new StatechartEvent("Event2");
 
 		private IMockCaller _caller;
 		
@@ -43,17 +44,17 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.Received().InitialOnExitCall(0);
-			_caller.Received().StateOnEnterCall(1);
+			_caller.Received().StateOnEnterCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			activity.Complete();
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.Received().StateOnExitCall(1);
+			_caller.Received().StateOnExitCall(0);
 			_caller.Received().FinalOnEnterCall(0);
 		}
 
@@ -66,18 +67,75 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.Received().InitialOnExitCall(0);
-			_caller.Received().StateOnEnterCall(1);
+			_caller.Received().StateOnEnterCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			statechart.Trigger(_event1);
 
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.Received().OnTransitionCall(2);
-			_caller.Received().StateOnExitCall(1);
+			_caller.Received().StateOnExitCall(0);
 			_caller.Received().FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void NestState_OuterEventTriggerAndActivityComplete_NoTransition()
+		{
+			IWaitActivity activity = null;
+			
+			var statechart = new Statechart(InternalSetupNest);
+
+			statechart.Run();
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received().OnTransitionCall(3);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.DidNotReceive().OnTransitionCall(5);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().InitialOnExitCall(1);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.Received().StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.DidNotReceive().FinalOnEnterCall(1);
+
+			statechart.Trigger(_event2);
+
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received().OnTransitionCall(5);
+			_caller.Received().StateOnExitCall(0);
+			_caller.Received().StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.Received().FinalOnEnterCall(1);
+			
+			activity.Complete();
+			
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received(1).OnTransitionCall(5);
+			_caller.Received(1).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.Received(1).FinalOnEnterCall(1);
+
+			void InternalSetupNest(IStateFactory factory)
+			{
+				SetupNest(factory, _event2, InnerSetupWaitState, true, false);
+			}
+
+			void InnerSetupWaitState(IStateFactory factory)
+			{
+				SetupWaitState(factory, waitActivity => activity = waitActivity);
+			}
 		}
 
 		[Test]
@@ -92,10 +150,10 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.Received().InitialOnExitCall(0);
-			_caller.Received().StateOnEnterCall(1);
+			_caller.Received().StateOnEnterCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			activitySplit = activity.Split();
@@ -103,14 +161,14 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			activitySplit.Complete();
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.Received().StateOnExitCall(1);
+			_caller.Received().StateOnExitCall(0);
 			_caller.Received().FinalOnEnterCall(0);
 		}
 
@@ -125,10 +183,10 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.Received().InitialOnExitCall(0);
-			_caller.Received().StateOnEnterCall(1);
+			_caller.Received().StateOnEnterCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			activity.Split();
@@ -136,12 +194,12 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			_caller.DidNotReceive().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
-			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 		}
 
@@ -156,10 +214,10 @@ namespace GameLoversEditor.StateChart.Tests
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(waiting);
 				initial.OnExit(() => _caller.InitialOnExitCall(0));
 
-				waiting.OnEnter(() => _caller.StateOnEnterCall(1));
+				waiting.OnEnter(() => _caller.StateOnEnterCall(0));
 				waiting.WaitingFor(waitingActivity => waitingActivity.Complete()).OnTransition(() => _caller.OnTransitionCall(1)).Target(waiting);
 				waiting.Event(_event1).OnTransition(() => _caller.OnTransitionCall(2)).Target(waiting);
-				waiting.OnExit(() => _caller.StateOnExitCall(1));
+				waiting.OnExit(() => _caller.StateOnExitCall(0));
 			}));
 		}
 
@@ -172,12 +230,30 @@ namespace GameLoversEditor.StateChart.Tests
 			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(waiting);
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
 
-			waiting.OnEnter(() => _caller.StateOnEnterCall(1));
+			waiting.OnEnter(() => _caller.StateOnEnterCall(0));
 			waiting.WaitingFor(waitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			waiting.Event(_event1).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
-			waiting.OnExit(() => _caller.StateOnExitCall(1));
+			waiting.OnExit(() => _caller.StateOnExitCall(0));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+		}
+
+		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
+		                       bool executeExit, bool executeFinal)
+		{
+			var initial = factory.Initial("Initial");
+			var nest = factory.Nest("Nest");
+			var final = factory.Final("final");
+
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(nest);
+			initial.OnExit(() => _caller.InitialOnExitCall(1));
+
+			nest.OnEnter(() => _caller.StateOnEnterCall(1));
+			nest.Nest(nestSetup, executeExit, executeFinal).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
+			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(5)).Target(final);
+			nest.OnExit(() => _caller.StateOnExitCall(1));
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(1));
 		}
 	}
 }
