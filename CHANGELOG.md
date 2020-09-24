@@ -9,10 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added new *ITransitionState* that acts as a non-blocker state between 2 different states
 
 **Changed**
-- Added *IStateEvent* to *ITaskWait* to allow event evocation. Events transitions cannot have target states on *ITaskWait* 
+- Added *IStateEvent* to *ITaskWaitState* to allow event evocation 
 
 **Fixed**
-- Fixed potential issue when *ITaskWait* would exit from a *INestState* or *ISplitState* without finishing the task	
+- Fixed potential issue when *ITaskWaitState* & *WaitState* would execute it's flow multiple times when a *INestState* or *ISplitState* would trigger an outside exit event	
 
 ## [0.4.0] - 2020-09-22
 

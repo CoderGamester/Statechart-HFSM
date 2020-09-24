@@ -9,6 +9,7 @@ namespace GameLovers.Statechart.Internal
 	internal interface IWaitActivityInternal : IWaitActivity
 	{
 		uint Id { get; }
+		uint ExecutionCount { get; set; }
 		bool IsCompleted { get; }
 		void Reset();
 	}
@@ -24,6 +25,8 @@ namespace GameLovers.Statechart.Internal
 
 		/// <inheritdoc />
 		public uint Id { get; private set; }
+		/// <inheritdoc />
+		public uint ExecutionCount { get; set; }
 		/// <inheritdoc />
 		public bool IsCompleted { get; private set; }
 

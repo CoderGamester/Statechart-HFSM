@@ -11,8 +11,9 @@ namespace GameLovers.Statechart.Internal
 	{
 		private ITransitionInternal _transition;
 		private Func<Task> _taskAwaitAction;
-		private bool _initialized;
+		private bool _triggered;
 		private bool _completed;
+		private uint _executionCount;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -20,13 +21,17 @@ namespace GameLovers.Statechart.Internal
 
 		public TaskWaitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
-			_initialized = false;
+			_triggered = false;
 			_completed = false;
+			_executionCount = 0;
 		}
 
 		/// <inheritdoc />
 		public override void Enter()
 		{
+			_triggered = false;
+			_completed = false;
+			
 			for(int i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
@@ -40,9 +45,6 @@ namespace GameLovers.Statechart.Internal
 			{
 				_onExit[i]?.Invoke();
 			}
-			
-			_initialized = false;
-			_completed = false;
 		}
 
 		/// <inheritdoc />
@@ -57,15 +59,6 @@ namespace GameLovers.Statechart.Internal
 			if (_transition.TargetState?.Id == Id)
 			{
 				throw new InvalidOperationException($"The state {Name} is pointing to itself on transition");
-			}
-
-			foreach (var eventTransition in _events)
-			{
-				if (eventTransition.Value.TargetState != null)
-				{
-					throw new InvalidOperationException($"The task await state {Name} cannot have event transitions " +
-					                                    $"with target states. Use {nameof(IWaitState)} for that purpose");
-				}
 			}
 #endif
 		}
@@ -124,10 +117,10 @@ namespace GameLovers.Statechart.Internal
 				return transition;
 			}
 
-			if (!_initialized)
+			if (!_triggered)
 			{
 				InnerTaskAwait(_taskAwaitAction);
-				_initialized = true;
+				_triggered = true;
 			}
 
 			return _completed ? _transition : null;
@@ -135,12 +128,16 @@ namespace GameLovers.Statechart.Internal
 
 		private async void InnerTaskAwait(Func<Task> taskAwaitAction)
 		{
+			var currentExecution = _executionCount;
+
+			_executionCount++;
+			
 			await taskAwaitAction();
 
 			_completed = true;
-			
+
 			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-			if (_initialized)
+			if (_executionCount == currentExecution)
 			{
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}

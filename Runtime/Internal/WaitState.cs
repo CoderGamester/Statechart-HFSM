@@ -12,7 +12,8 @@ namespace GameLovers.Statechart.Internal
 		private ITransitionInternal _transition;
 		private IWaitActivityInternal _waitingActivity;
 		private Action<IWaitActivity> _waitAction;
-		private bool _initialized;
+		private bool _triggered;
+		private uint _executionCount;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -20,14 +21,15 @@ namespace GameLovers.Statechart.Internal
 
 		public WaitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
-			_initialized = false;
+			_triggered = false;
+			_executionCount = 0;
 		}
 
 		/// <inheritdoc />
 		public override void Enter()
 		{
 			_waitingActivity.Reset();
-			_initialized = false;
+			_triggered = false;
 
 			for(int i = 0; i < _onEnter.Count; i++)
 			{
@@ -124,13 +126,16 @@ namespace GameLovers.Statechart.Internal
 				return transition;
 			}
 
-			if (!_initialized)
+			if (!_triggered)
 			{
+				_triggered = true;
+				_waitingActivity.ExecutionCount = _executionCount;
+				_executionCount++;
+				
 				_waitAction(_waitingActivity);
-				_initialized = true;
 			}
 
-			return _waitingActivity.IsCompleted ? _transition : null;
+			return _waitingActivity.IsCompleted && _waitingActivity.ExecutionCount == _executionCount - 1 ? _transition : null;
 		}
 	}
 }
