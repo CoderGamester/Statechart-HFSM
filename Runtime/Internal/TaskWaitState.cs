@@ -137,7 +137,7 @@ namespace GameLovers.Statechart.Internal
 			_completed = true;
 
 			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-			if (_executionCount == currentExecution)
+			if (_executionCount - 1 == currentExecution)
 			{
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
