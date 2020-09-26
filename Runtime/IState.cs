@@ -10,6 +10,10 @@ namespace GameLovers.Statechart
 	/// </summary>
 	public interface IState
 	{
+		/// <summary>
+		/// Allows to show logs in the console to help debugging possible errors in this specific state
+		/// </summary>
+		bool LogsEnabled { get; set; }
 	}
 
 	#region Compositions
