@@ -53,6 +53,8 @@ namespace GameLovers.Statechart.Internal
 		private static uint _idRef;
 
 		/// <inheritdoc />
+		public bool LogsEnabled { get; set; }
+		/// <inheritdoc />
 		public uint Id { get; }
 		/// <inheritdoc />
 		public string Name { get; }
@@ -60,6 +62,8 @@ namespace GameLovers.Statechart.Internal
 		public uint RegionLayer => _stateFactory.RegionLayer;
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
+
+		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{
@@ -80,6 +84,11 @@ namespace GameLovers.Statechart.Internal
 
 			if (transition == null)
 			{
+				if (IsStateLogsEnabled)
+				{
+					Debug.Log($"'{statechartEvent?.Name}' does not trigger any transition in state '{Name}'");
+				}
+				
 				return null;
 			}
 
@@ -87,18 +96,24 @@ namespace GameLovers.Statechart.Internal
 
 			if (Equals(nextState))
 			{
+				if (IsStateLogsEnabled)
+				{
+					Debug.Log($"'{statechartEvent?.Name}' event triggers the transition in state'{Name}' to" +
+					          $"itself because it's of type {GetType().UnderlyingSystemType.Name}");
+				}
+				
 				return nextState;
 			}
 
-			if (transition.TargetState == null)
+			if (nextState == null)
 			{
-				TriggerTransition(transition);
+				TriggerTransition(transition, statechartEvent?.Name);
 
 				return null;
 			}
 
 			TriggerExit();
-			TriggerTransition(transition);
+			TriggerTransition(transition, statechartEvent?.Name);
 			TriggerEnter(nextState);
 
 			return nextState;
@@ -141,9 +156,9 @@ namespace GameLovers.Statechart.Internal
 		{
 			try
 			{
-				if (_stateFactory.Data.Statechart.LogsEnabled)
+				if (IsStateLogsEnabled)
 				{
-					Debug.LogFormat("Entering '{0}'", state.Name);
+					Debug.Log($"Entering '{state.Name}'");
 				}
 				state.Enter();
 			}
@@ -157,9 +172,9 @@ namespace GameLovers.Statechart.Internal
 		{
 			try
 			{
-				if(_stateFactory.Data.Statechart.LogsEnabled)
+				if(IsStateLogsEnabled)
 				{
-					Debug.LogFormat("Exiting '{0}'", Name);
+					Debug.LogFormat($"Exiting '{Name}'");
 				}
 				Exit();
 			}
@@ -169,14 +184,17 @@ namespace GameLovers.Statechart.Internal
 			}
 		}
 
-		private void TriggerTransition(ITransitionInternal transition)
+		private void TriggerTransition(ITransitionInternal transition, string eventName)
 		{
 			try
 			{
-				if (_stateFactory.Data.Statechart.LogsEnabled)
+				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"Transition '{Name}' -> '{transition.TargetState?.Name}'");
+					var targetState = transition.TargetState?.Name ?? "only invokes OnTransition() without moving to new state";
+					
+					Debug.Log($"'{eventName}' event triggers the transition '{Name}' -> '{targetState}'");
 				}
+				
 				transition.TriggerTransition();
 			}
 			catch (Exception e)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameLovers.Statechart;
+using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -129,13 +130,31 @@ namespace GameLovers.Statechart.Internal
 			if (!_triggered)
 			{
 				_triggered = true;
-				_waitingActivity.ExecutionCount = _executionCount;
-				_executionCount++;
-				
-				_waitAction(_waitingActivity);
+				InnerWait(statechartEvent?.Name);
 			}
 
 			return _waitingActivity.IsCompleted && _waitingActivity.ExecutionCount == _executionCount - 1 ? _transition : null;
+		}
+
+		private void InnerWait(string eventName)
+		{
+			_waitingActivity.ExecutionCount = _executionCount;
+			_executionCount++;
+
+			try
+			{
+				if (IsStateLogsEnabled)
+				{
+					Debug.Log($"'{eventName}' event triggers the wait method '{_waitAction.Method.Name}'" +
+					          $"from the object {_waitAction.Target} in the state {Name}");
+				}
+				_waitAction(_waitingActivity);
+			}
+			catch(Exception e)
+			{
+				throw new Exception($"Exception in the state '{Name}', when calling the wait action {_waitAction.Method.Name}" +
+				                    $"from the object {_waitAction.Target}.\n" + CreationStackTrace, e);
+			}
 		}
 	}
 }

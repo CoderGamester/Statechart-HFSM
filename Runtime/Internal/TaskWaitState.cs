@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -119,20 +120,34 @@ namespace GameLovers.Statechart.Internal
 
 			if (!_triggered)
 			{
-				InnerTaskAwait(_taskAwaitAction);
 				_triggered = true;
+				InnerTaskAwait(statechartEvent?.Name);
 			}
 
 			return _completed ? _transition : null;
 		}
 
-		private async void InnerTaskAwait(Func<Task> taskAwaitAction)
+		private async void InnerTaskAwait(string eventName)
 		{
 			var currentExecution = _executionCount;
 
 			_executionCount++;
-			
-			await taskAwaitAction();
+
+			try
+			{
+				if (IsStateLogsEnabled)
+				{
+					Debug.Log($"'{eventName}' event triggers the task wait method '{_taskAwaitAction.Method.Name}'" +
+					          $"from the object {_taskAwaitAction.Target} in the state {Name}");
+				}
+				
+				await _taskAwaitAction();
+			}
+			catch (Exception e)
+			{
+				throw new Exception($"Exception in the state '{Name}', when calling the task wait action {_taskAwaitAction.Method.Name}" +
+				                    $"from the object {_taskAwaitAction.Target}.\n" + CreationStackTrace, e);
+			}
 
 			_completed = true;
 
