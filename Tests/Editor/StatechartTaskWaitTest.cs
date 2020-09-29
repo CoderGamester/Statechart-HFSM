@@ -31,12 +31,14 @@ namespace GameLoversEditor.Statechart.Tests
 
 		private IMockCaller _caller;
 		private bool _blocker;
+		private bool _done;
 		
 		[SetUp]
 		public void Init()
 		{
 			_caller = Substitute.For<IMockCaller>();
 			_blocker = true;
+			_done = false;
 		}
 
 		[UnityTest]
@@ -187,14 +189,18 @@ namespace GameLoversEditor.Statechart.Tests
 			{
 				await Task.Delay(1);
 			}
+
+			_done = true;
 		}
 
 		private IEnumerator YieldCoroutine()
 		{
-			for (int i = 0; i < 5; i++)
+			while (!_done)
 			{
 				yield return null;
 			}
+			
+			yield return null;
 		}
 
 		private void SetupTaskWaitState(IStateFactory factory, Func<Task> waitAction)
