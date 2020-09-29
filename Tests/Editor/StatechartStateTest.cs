@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartStateTest
@@ -35,7 +35,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new StateMachine(SetupEventState);
 
 			statechart.Run();
 
@@ -56,7 +56,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_TransitionWithoutTarget()
 		{
-			var statechart = new Statechart(SetupEventState_WithoutTarget);
+			var statechart = new StateMachine(SetupEventState_WithoutTarget);
 
 			statechart.Run();
 
@@ -77,7 +77,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void TriggerNotConfiguredEvent_DoesNothing()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new StateMachine(SetupEventState);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -96,7 +96,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void PauseRunStatechart()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new StateMachine(SetupEventState);
 
 			statechart.Run();
 			statechart.Pause();
@@ -114,7 +114,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void ResetRunStatechart()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new StateMachine(SetupEventState);
 
 			statechart.Run();
 			statechart.Reset();
@@ -132,7 +132,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var state = factory.State("State");

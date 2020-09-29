@@ -26,21 +26,21 @@ namespace GameLovers.Statechart.Internal
 		string CreationStackTrace { get; }
 		
 		/// <summary>
-		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStatechart"/> and returns
+		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStateMachine"/> and returns
 		/// the processed <see cref="IStateInternal"/> as an output
 		/// </summary>
 		IStateInternal Trigger(IStatechartEvent statechartEvent);
 		/// <summary>
-		/// Marks the initial moment of this state as the new current state in the <see cref="IStatechart"/>
+		/// Marks the initial moment of this state as the new current state in the <see cref="IStateMachine"/>
 		/// </summary>
 		void Enter();
 		/// <summary>
-		/// Marks the final moment of this state as the current state in the <see cref="IStatechart"/>
+		/// Marks the final moment of this state as the current state in the <see cref="IStateMachine"/>
 		/// </summary>
 		void Exit();
 		/// <summary>
 		/// Validates this state to any potential bad setup schemes. Relevant to debug purposes.
-		/// It requires the <see cref="IStatechart"/> to run at runtime.
+		/// It requires the <see cref="IStateMachine"/> to run at runtime.
 		/// </summary>
 		void Validate();
 	}
@@ -63,7 +63,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
 
-		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
+		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.StateMachine.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{

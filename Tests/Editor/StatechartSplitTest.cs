@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartSplitTest
@@ -35,7 +35,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -60,7 +60,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_WithoutTarget()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -85,7 +85,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void InnerEventTrigger()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -113,7 +113,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void InnerEventTrigger_ExecuteFinal_SameResult()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -141,7 +141,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void InnerEventTrigger_NotExecuteExit_SameResult()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -169,7 +169,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -197,7 +197,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger_ExecuteFinal()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -225,7 +225,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger_NotExecuteExit()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -253,7 +253,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void OuterEventTrigger_NotExecuteExit_ExecuteFinal()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -281,7 +281,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NestedStates_InnerEventTrigger()
 		{
-			var statechart = new Statechart(SetupLayer0);
+			var statechart = new StateMachine(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -314,7 +314,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NestedStates_OuterEventTrigger()
 		{
-			var statechart = new Statechart(SetupLayer0);
+			var statechart = new StateMachine(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -347,7 +347,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NestedStates_OuterEventTriggerSameTrigger_ExecutesMostOuter()
 		{
-			var statechart = new Statechart(SetupLayer0);
+			var statechart = new StateMachine(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -380,7 +380,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StatechartSplit_RunResetRun()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -411,7 +411,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StatechartSplit_HalfFinal_NotFinalized()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -431,7 +431,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void SplitState_StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var split = factory.Split("Nest");

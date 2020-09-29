@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartTransitionTest
@@ -33,7 +33,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new Statechart(SetupSimple);
+			var statechart = new StateMachine(SetupSimple);
 
 			statechart.Run();
 
@@ -48,7 +48,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_TransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
@@ -68,7 +68,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_TransitionWithoutTransition_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
@@ -87,7 +87,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");

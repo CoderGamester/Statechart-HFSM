@@ -1,5 +1,5 @@
 {
-    "name": "GameLovers.StateChart.Editor.Tests",
+    "name": "GameLovers.Statechart.Editor.Tests",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",

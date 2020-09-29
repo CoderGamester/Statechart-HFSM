@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartWaitTest
@@ -38,7 +38,7 @@ namespace GameLoversEditor.StateChart.Tests
 		{
 			IWaitActivity activity = null;
 
-			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -61,7 +61,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void EventTrigger()
 		{
-			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => { }));
+			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => { }));
 
 			statechart.Run();
 
@@ -86,7 +86,7 @@ namespace GameLoversEditor.StateChart.Tests
 		{
 			IWaitActivity activity = null;
 			
-			var statechart = new Statechart(InternalSetupNest);
+			var statechart = new StateMachine(InternalSetupNest);
 
 			statechart.Run();
 
@@ -144,7 +144,7 @@ namespace GameLoversEditor.StateChart.Tests
 			IWaitActivity activity = null;
 			IWaitActivity activitySplit = null;
 
-			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -177,7 +177,7 @@ namespace GameLoversEditor.StateChart.Tests
 		{
 			IWaitActivity activity = null;
 
-			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -206,7 +206,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var waiting = factory.Wait("Waiting");

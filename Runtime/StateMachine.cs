@@ -8,7 +8,7 @@ namespace GameLovers.Statechart
 	/// <summary>
 	/// Interface to help debug the state chart
 	/// </summary>
-	public interface IStatechartDebug
+	public interface IStateMachineDebug
 	{
 		/// <summary>
 		/// Allows to show logs in the console to help debugging possible errors in the states & transitions
@@ -21,7 +21,7 @@ namespace GameLovers.Statechart
 	/// The State Chart schematics are defined in the constructor setup action and cannot be modified during runtime. 
 	/// See <see cref="http://www.omg.org/spec/UML"/> for Semantics.
 	/// </summary>
-	public interface IStatechart : IStatechartDebug
+	public interface IStateMachine : IStateMachineDebug
 	{
 		/// <summary>
 		/// Processes the event <param name="trigger"></param> for the State Chart with run-to-completion paradigm.
@@ -49,8 +49,8 @@ namespace GameLovers.Statechart
 		void Reset();
 	}
 
-	/// <inheritdoc cref="IStatechart"/>
-	public class Statechart : IStatechart
+	/// <inheritdoc cref="IStateMachine"/>
+	public class StateMachine : IStateMachine
 	{
 		private bool _isRunning;
 		private IStateInternal _currentState;
@@ -60,11 +60,11 @@ namespace GameLovers.Statechart
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
 
-		private Statechart() {}
+		private StateMachine() {}
 
-		public Statechart(Action<IStateFactory> setup)
+		public StateMachine(Action<IStateFactory> setup)
 		{
-			var stateFactory = new StateFactory(0, new StateFactoryData { Statechart = this, StateChartMoveNextCall = MoveNext });
+			var stateFactory = new StateFactory(0, new StateFactoryData { StateMachine = this, StateChartMoveNextCall = MoveNext });
 
 			setup(stateFactory);
 
