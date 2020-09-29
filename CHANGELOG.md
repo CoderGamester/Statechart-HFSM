@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2020-09-29
+
+**Changed**
+- Renamed *Statechart* to *StateMachine* to avoid namespace conflicts
+
+**Fixed**
+- Fixed *ITaskWaitState* bad tests
+
 ## [0.5.2] - 2020-09-27
 
 - Added *IStatechartEvent* data to the logs

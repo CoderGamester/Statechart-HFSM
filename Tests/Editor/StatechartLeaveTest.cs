@@ -5,7 +5,7 @@ using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartLeaveTest
@@ -36,7 +36,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NestStateBasicSetup()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -70,7 +70,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NestStateBasicSetup_ExecuteFinal_SameResult()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -104,7 +104,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void SplitStateBasicSetup()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -137,7 +137,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void SplitStateBasicSetup_ExecuteFinal_SameResult()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -170,7 +170,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NoSplitFinalized_LeaveOneSplit_LeaveAll()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -204,7 +204,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void NoSplitFinalized_LeaveOneSplitExecuteFinal_ExecuteOtherSplitFinal()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new StateMachine(Setup);
 
 			statechart.Run();
 
@@ -238,7 +238,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_NestStateTransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
 			{
 				SetupNest(factory, SetupLeave_WithoutTarget, false);
 			}));
@@ -247,7 +247,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void BasicSetup_SplitStateTransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
 			{
 				SetupSplit(factory, SetupSimple, SetupLeave_WithoutTarget, false);
 			}));
@@ -256,7 +256,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void SameLayerTarget_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var leave = factory.Leave("Leave");
@@ -272,7 +272,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void WrongLayerTarget_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var state = factory.State("State");
 
@@ -288,7 +288,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void MultipleTransitions_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var state = factory.State("State");
 

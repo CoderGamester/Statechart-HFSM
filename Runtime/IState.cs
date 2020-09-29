@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace GameLovers.Statechart
 {
 	/// <summary>
-	/// The representation of a state in the <see cref="IStatechart"/>
+	/// The representation of a state in the <see cref="IStateMachine"/>
 	/// </summary>
 	public interface IState
 	{
@@ -71,7 +71,7 @@ namespace GameLovers.Statechart
 	/// <summary>
 	/// An initial pseudo state represents a starting point for a region, that is, the point from which execution when its contained,
 	/// the behavior will commence when the region is entered.
-	/// A <see cref="IStatechart"/> can have only one initial state in a single region, but can have more initial states in nested regions.
+	/// A <see cref="IStateMachine"/> can have only one initial state in a single region, but can have more initial states in nested regions.
 	/// </summary>
 	public interface IInitialState : IStateExit, IStateTransition
 	{
@@ -80,14 +80,14 @@ namespace GameLovers.Statechart
 	/// <summary>
 	/// A final state marks the enclosing region has completed.
 	/// A Transition to a final state represents the completion of the region that contains the final state.
-	/// A <see cref="IStatechart"/> can have only one final state in a single region, but can have more initial states in nested regions.
+	/// A <see cref="IStateMachine"/> can have only one final state in a single region, but can have more initial states in nested regions.
 	/// </summary>
 	public interface IFinalState : IStateEnter
 	{
 	}
 
 	/// <summary>
-	/// A transition state models a non-blocker situation in the execution of the <see cref="IStatechart"/> behavior.
+	/// A transition state models a non-blocker situation in the execution of the <see cref="IStateMachine"/> behavior.
 	/// Represents a non-blocking point on the state chart execution that automatically continues to the target state
 	/// </summary>
 	public interface ITransitionState : IStateEnter, IStateExit, IStateTransition
@@ -95,7 +95,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A simple state models a situation in the execution of the <see cref="IStatechart"/> behavior.
+	/// A simple state models a situation in the execution of the <see cref="IStateMachine"/> behavior.
 	/// Represents a blocking point on the state chart execution waiting for an event trigger to continue
 	/// </summary>
 	public interface ISimpleState : IStateEnter, IStateExit, IStateEvent
@@ -103,7 +103,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A nest state allows the state chart to create new nested region in the <see cref="IStatechart"/>.
+	/// A nest state allows the state chart to create new nested region in the <see cref="IStateMachine"/>.
 	/// This can be very helpfull to reduced bloated code in order to make it more readable.
 	/// </summary>
 	public interface INestState : IStateEnter, IStateExit, IStateEvent
@@ -120,7 +120,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
+	/// A wait state is a blocking state that holds the <see cref="IStateMachine"/> behavior.
 	/// It waits for the completion of defined activities or for an event to be triggered to resume the state chart execution.
 	/// </summary>
 	public interface IWaitState : IStateEnter, IStateExit, IStateEvent
@@ -134,7 +134,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A task wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
+	/// A task wait state is a blocking state that holds the <see cref="IStateMachine"/> behavior.
 	/// It waits for the completion of async defined <see cref="Task"/> to be completed to resume the state chart execution.
 	/// </summary>
 	public interface ITaskWaitState : IStateEnter, IStateExit, IStateEvent
@@ -147,7 +147,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A choice state models a situation in the execution during which some explicit condition holds the <see cref="IStatechart"/> behavior.
+	/// A choice state models a situation in the execution during which some explicit condition holds the <see cref="IStateMachine"/> behavior.
 	/// This state doesn't block the state chart execution as it has always valid transition defined.
 	/// </summary>
 	public interface IChoiceState : IStateEnter, IStateExit
@@ -160,7 +160,7 @@ namespace GameLovers.Statechart
 	}
 
 	/// <summary>
-	/// A nest state allows the state chart to create two new nested parallel region in the <see cref="IStatechart"/>.
+	/// A nest state allows the state chart to create two new nested parallel region in the <see cref="IStateMachine"/>.
 	/// The two new nested regions will run and be processed in parallel.
 	/// </summary>
 	public interface ISplitState : IStateEnter, IStateExit, IStateEvent

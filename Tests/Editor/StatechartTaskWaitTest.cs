@@ -1,12 +1,15 @@
 using System;
+using System.Collections;
 using System.Threading.Tasks;
 using GameLovers.Statechart;
 using NSubstitute;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.StateChart.Tests
+namespace GameLoversEditor.Statechart.Tests
 {
 	[TestFixture]
 	public class StatechartTaskWaitTest
@@ -36,10 +39,10 @@ namespace GameLoversEditor.StateChart.Tests
 			_blocker = true;
 		}
 
-		[Test]
-		public void BasicSetup()
+		[UnityTest]
+		public IEnumerator BasicSetup()
 		{
-			var statechart = new Statechart(factory => SetupTaskWaitState(factory, TaskWaitAction));
+			var statechart = new StateMachine(factory => SetupTaskWaitState(factory, TaskWaitAction));
 
 			statechart.Run();
 
@@ -53,21 +56,18 @@ namespace GameLoversEditor.StateChart.Tests
 
 			_blocker = false;
 
-			Task.Run(async () =>
-			{
-				await Task.Delay(10);
+			yield return YieldCoroutine();
 				
-				_caller.Received().OnTransitionCall(1);
-				_caller.DidNotReceive().OnTransitionCall(2);
-				_caller.Received().StateOnExitCall(0);
-				_caller.Received().FinalOnEnterCall(0);
-			});
+			_caller.Received().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received().StateOnExitCall(0);
+			_caller.Received().FinalOnEnterCall(0);
 		}
 
-		[Test]
-		public void EventTrigger()
+		[UnityTest]
+		public IEnumerator EventTrigger()
 		{
-			var statechart = new Statechart(factory => SetupTaskWaitState(factory, TaskWaitAction));
+			var statechart = new StateMachine(factory => SetupTaskWaitState(factory, TaskWaitAction));
 
 			statechart.Run();
 
@@ -82,22 +82,19 @@ namespace GameLoversEditor.StateChart.Tests
 			statechart.Trigger(_event1);
 			
 			_blocker = false;
+			
+			yield return YieldCoroutine();
 
-			Task.Run(async () =>
-			{
-				await Task.Delay(10);
-				
-				_caller.Received().OnTransitionCall(1);
-				_caller.Received().OnTransitionCall(2);
-				_caller.Received().StateOnExitCall(0);
-				_caller.Received().FinalOnEnterCall(0);
-			});
+			_caller.Received().OnTransitionCall(1);
+			_caller.Received().OnTransitionCall(2);
+			_caller.Received().StateOnExitCall(0);
+			_caller.Received().FinalOnEnterCall(0);
 		}
 
-		[Test]
-		public void NestState_OuterEventTriggerAndTaskComplete_NoTransition()
+		[UnityTest]
+		public IEnumerator NestState_OuterEventTriggerAndTaskComplete_NoTransition()
 		{
-			var statechart = new Statechart(InternalSetupNest);
+			var statechart = new StateMachine(InternalSetupNest);
 
 			statechart.Run();
 
@@ -128,20 +125,17 @@ namespace GameLoversEditor.StateChart.Tests
 			_caller.Received().FinalOnEnterCall(1);
 			
 			_blocker = false;
-
-			Task.Run(async () =>
-			{
-				await Task.Delay(10);
+			
+			yield return YieldCoroutine();
 				
-				_caller.DidNotReceive().OnTransitionCall(1);
-				_caller.DidNotReceive().OnTransitionCall(2);
-				_caller.DidNotReceive().OnTransitionCall(4);
-				_caller.Received(1).OnTransitionCall(5);
-				_caller.Received(1).StateOnExitCall(0);
-				_caller.Received(1).StateOnExitCall(1);
-				_caller.DidNotReceive().FinalOnEnterCall(0);
-				_caller.Received(1).FinalOnEnterCall(1);
-			});
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received(1).OnTransitionCall(5);
+			_caller.Received(1).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+			_caller.Received(1).FinalOnEnterCall(1);
 
 			void InternalSetupNest(IStateFactory factory)
 			{
@@ -157,7 +151,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void MissingTaskWaiter_ThrowsException()
 		{
-			Assert.Throws<MissingMethodException>(() => new Statechart(factory =>
+			Assert.Throws<MissingMethodException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var waiting = factory.TaskWait("Waiting");
@@ -173,7 +167,7 @@ namespace GameLoversEditor.StateChart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var waiting = factory.TaskWait("Waiting");
@@ -192,6 +186,14 @@ namespace GameLoversEditor.StateChart.Tests
 			while (_blocker)
 			{
 				await Task.Delay(1);
+			}
+		}
+
+		private IEnumerator YieldCoroutine()
+		{
+			for (int i = 0; i < 5; i++)
+			{
+				yield return null;
 			}
 		}
 
