@@ -137,16 +137,16 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{eventName}' event triggers the task wait method '{_taskAwaitAction.Method.Name}'" +
-					          $"from the object {_taskAwaitAction.Target} in the state {Name}");
+					Debug.Log($"'{eventName}' : '{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()' => '{Name}'");
 				}
-				
+
+				await Task.Delay(1);
 				await _taskAwaitAction();
 			}
 			catch (Exception e)
 			{
-				throw new Exception($"Exception in the state '{Name}', when calling the task wait action {_taskAwaitAction.Method.Name}" +
-				                    $"from the object {_taskAwaitAction.Target}.\n" + CreationStackTrace, e);
+				throw new Exception($"Exception in the state '{Name}', when calling the task wait action " +
+				                    $"'{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()'.\n" + CreationStackTrace, e);
 			}
 
 			_completed = true;

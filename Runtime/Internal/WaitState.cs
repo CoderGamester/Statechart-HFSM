@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using GameLovers.Statechart;
 using UnityEngine;
 
@@ -136,7 +137,7 @@ namespace GameLovers.Statechart.Internal
 			return _waitingActivity.IsCompleted && _waitingActivity.ExecutionCount == _executionCount - 1 ? _transition : null;
 		}
 
-		private void InnerWait(string eventName)
+		private async void InnerWait(string eventName)
 		{
 			_waitingActivity.ExecutionCount = _executionCount;
 			_executionCount++;
@@ -145,15 +146,16 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{eventName}' event triggers the wait method '{_waitAction.Method.Name}'" +
-					          $"from the object {_waitAction.Target} in the state {Name}");
+					Debug.Log($"'{eventName}' : '{_waitAction.Target}.{_waitAction.Method.Name}()' => '{Name}'");
 				}
+
+				await Task.Delay(1);
 				_waitAction(_waitingActivity);
 			}
 			catch(Exception e)
 			{
-				throw new Exception($"Exception in the state '{Name}', when calling the wait action {_waitAction.Method.Name}" +
-				                    $"from the object {_waitAction.Target}.\n" + CreationStackTrace, e);
+				throw new Exception($"Exception in the state '{Name}', when calling the task wait action " +
+				                    $"'{_waitAction.Target}.{_waitAction.Method.Name}()'.\n" + CreationStackTrace, e);
 			}
 		}
 	}
