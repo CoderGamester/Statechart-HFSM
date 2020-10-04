@@ -26,21 +26,21 @@ namespace GameLovers.Statechart.Internal
 		string CreationStackTrace { get; }
 		
 		/// <summary>
-		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStateMachine"/> and returns
+		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStatechart"/> and returns
 		/// the processed <see cref="IStateInternal"/> as an output
 		/// </summary>
 		IStateInternal Trigger(IStatechartEvent statechartEvent);
 		/// <summary>
-		/// Marks the initial moment of this state as the new current state in the <see cref="IStateMachine"/>
+		/// Marks the initial moment of this state as the new current state in the <see cref="IStatechart"/>
 		/// </summary>
 		void Enter();
 		/// <summary>
-		/// Marks the final moment of this state as the current state in the <see cref="IStateMachine"/>
+		/// Marks the final moment of this state as the current state in the <see cref="IStatechart"/>
 		/// </summary>
 		void Exit();
 		/// <summary>
 		/// Validates this state to any potential bad setup schemes. Relevant to debug purposes.
-		/// It requires the <see cref="IStateMachine"/> to run at runtime.
+		/// It requires the <see cref="IStatechart"/> to run at runtime.
 		/// </summary>
 		void Validate();
 	}
@@ -63,7 +63,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
 
-		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.StateMachine.LogsEnabled;
+		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{
@@ -86,7 +86,7 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{statechartEvent?.Name}' does not trigger any transition in state '{Name}'");
+					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{statechartEvent?.Name}' : ## STOP ## '{Name}'");
 				}
 				
 				return null;
@@ -98,8 +98,8 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{statechartEvent?.Name}' event triggers the transition in state'{Name}' to" +
-					          $"itself because it's of type {GetType().UnderlyingSystemType.Name}");
+					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{statechartEvent?.Name}' : " +
+					          $"'{Name}' -> '{Name}' because => {GetType().UnderlyingSystemType.Name}");
 				}
 				
 				return nextState;
@@ -158,7 +158,7 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"Entering '{state.Name}'");
+					Debug.Log($"({state.GetType().UnderlyingSystemType.Name}) - Entering '{state.Name}'");
 				}
 				state.Enter();
 			}
@@ -174,7 +174,7 @@ namespace GameLovers.Statechart.Internal
 			{
 				if(IsStateLogsEnabled)
 				{
-					Debug.LogFormat($"Exiting '{Name}'");
+					Debug.LogFormat($"({GetType().UnderlyingSystemType.Name}) - Exiting '{Name}'");
 				}
 				Exit();
 			}
@@ -190,9 +190,9 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					var targetState = transition.TargetState?.Name ?? "only invokes OnTransition() without moving to new state";
+					var targetState = transition.TargetState?.Name ?? "only invokes OnTransition()";
 					
-					Debug.Log($"'{eventName}' event triggers the transition '{Name}' -> '{targetState}'");
+					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{eventName}' : '{Name}' -> '{targetState}'");
 				}
 				
 				transition.TriggerTransition();

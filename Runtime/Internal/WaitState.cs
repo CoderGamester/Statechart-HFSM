@@ -146,7 +146,7 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{eventName}' : '{_waitAction.Target}.{_waitAction.Method.Name}()' => '{Name}'");
+					Debug.Log($"Wait - '{eventName}' : '{_waitAction.Target}.{_waitAction.Method.Name}()' => '{Name}'");
 				}
 
 				await Task.Delay(1);
