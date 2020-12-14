@@ -95,6 +95,11 @@ namespace GameLovers.Statechart.Internal
 				}
 			}
 
+			if (IsCompleted)
+			{
+				return;
+			}
+
 			IsCompleted = true;
 
 			if (_innerOnComplete != null)

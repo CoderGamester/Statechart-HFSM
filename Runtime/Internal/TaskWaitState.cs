@@ -42,6 +42,8 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
+			_completed = true;
+			
 			for(int i = 0; i < _onExit.Count; i++)
 			{
 				_onExit[i]?.Invoke();
@@ -149,11 +151,12 @@ namespace GameLovers.Statechart.Internal
 				                    $"'{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()'.\n" + CreationStackTrace, e);
 			}
 
-			_completed = true;
-
 			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-			if (_executionCount - 1 == currentExecution)
+
+			if (!_completed && _executionCount - 1 == currentExecution)
 			{
+				_completed = true;
+				
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
 		}
