@@ -50,6 +50,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Complete();
 
 			_caller.Received().OnTransitionCall(1);
@@ -116,6 +117,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 			_caller.Received().FinalOnEnterCall(1);
 			
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Complete();
 			
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -156,6 +158,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activitySplit = activity.Split();
 			activity.Complete();
 
@@ -189,6 +192,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Split();
 			activity.Complete();
 
