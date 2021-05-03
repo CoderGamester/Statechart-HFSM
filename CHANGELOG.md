@@ -6,11 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.7.0] - 2021-05-04
 
+- Improved State documentations
+- Improved State debug logs
+
 **Changed**
-- Renamed *Statechart* to *StateMachine* to avoid namespace conflicts
+- Removed redundant *SplitFinal* & *SplitExitFinal* methods from *ISplitState*. Now the *Split* method incorporates all possible cases to simplify implementation
 
 **Fixed**
-- Fixed *ITaskWaitState* bad tests
+- Fixed reference checks for *WaitState*
+- Fixed *StatechartTaskWaitTest* to work also when multiple tests run in parallel
+- Fixed *TaskWaitState* racing condition bug on chained states
+- Fixed bug on *WaitState* that when finished instantaneously would execute state transitions multiple times
 
 ## [0.6.0] - 2020-09-29
 
