@@ -31,12 +31,14 @@ namespace GameLoversEditor.Statechart.Tests
 
 		private IMockCaller _caller;
 		private bool _blocker;
+		private bool _done;
 		
 		[SetUp]
 		public void Init()
 		{
 			_caller = Substitute.For<IMockCaller>();
 			_blocker = true;
+			_done = false;
 		}
 
 		[UnityTest]
@@ -55,9 +57,9 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			_blocker = false;
-
+			
 			yield return YieldCoroutine();
-				
+			
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.Received().StateOnExitCall(0);
@@ -84,7 +86,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_blocker = false;
 			
 			yield return YieldCoroutine();
-
+				
 			_caller.Received().OnTransitionCall(1);
 			_caller.Received().OnTransitionCall(2);
 			_caller.Received().StateOnExitCall(0);
@@ -185,16 +187,20 @@ namespace GameLoversEditor.Statechart.Tests
 		{
 			while (_blocker)
 			{
-				await Task.Delay(1);
+				await Task.Yield();
 			}
-		}
 
+			_done = true;
+		}
+		
 		private IEnumerator YieldCoroutine()
 		{
-			for (int i = 0; i < 5; i++)
+			while (!_done)
 			{
 				yield return null;
 			}
+			
+			yield return null;
 		}
 
 		private void SetupTaskWaitState(IStateFactory factory, Func<Task> waitAction)

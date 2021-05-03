@@ -2,8 +2,14 @@
 
 namespace GameLovers.Statechart.Internal
 {
+	/// <summary>
+	/// Helper class for the statechart to work properly
+	/// </summary>
 	internal static class StatechartUtils
 	{
+		/// <summary>
+		/// Cleans ups the given <paramref name="stackTrace"/> of unnecessary string data
+		/// </summary>
 		public static string RemoveGarbageFromStackTrace(string stackTrace)
 		{
 			var lineIdx = stackTrace.IndexOf('\n') + 1;

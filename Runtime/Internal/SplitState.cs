@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -144,21 +143,8 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2)
-		{
-			return SplitExitFinal(setup1, setup2, true, true, false, false);
-		}
-
-		/// <inheritdoc />
-		public ITransition SplitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1,
-		                              bool executeFinal2)
-		{
-			return SplitExitFinal(setup1, setup2, true, true, executeFinal1, executeFinal2);
-		}
-
-		/// <inheritdoc />
-		public ITransition SplitExitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeExit1, 
-		                                  bool executeExit2, bool executeFinal1, bool executeFinal2)
+		public ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeExit1 = true, 
+		                                  bool executeExit2 = true, bool executeFinal1 = true, bool executeFinal2 = true)
 		{
 			if (_transition != null)
 			{

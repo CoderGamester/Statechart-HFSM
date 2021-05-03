@@ -396,7 +396,7 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.SplitFinal(setup1, setup2, executeFinal, executeFinal)
+			split.Split(setup1, setup2, true, true,executeFinal, executeFinal)
 			     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			split.Event(_event2).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			split.OnExit(() => _caller.StateOnExitCall(1));

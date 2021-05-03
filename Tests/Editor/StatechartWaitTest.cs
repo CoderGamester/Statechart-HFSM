@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using GameLovers.Statechart;
 using NSubstitute;
 using NUnit.Framework;
@@ -34,7 +35,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void BasicSetup()
+		public async void BasicSetup()
 		{
 			IWaitActivity activity = null;
 
@@ -50,6 +51,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Complete();
 
 			_caller.Received().OnTransitionCall(1);
@@ -82,7 +84,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void NestState_OuterEventTriggerAndActivityComplete_NoTransition()
+		public async void NestState_OuterEventTriggerAndActivityComplete_NoTransition()
 		{
 			IWaitActivity activity = null;
 			
@@ -116,6 +118,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 			_caller.Received().FinalOnEnterCall(1);
 			
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Complete();
 			
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -139,7 +142,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void SplitActivity_CompleteBoth()
+		public async void SplitActivity_CompleteBoth()
 		{
 			IWaitActivity activity = null;
 			IWaitActivity activitySplit = null;
@@ -156,6 +159,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activitySplit = activity.Split();
 			activity.Complete();
 
@@ -173,7 +177,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void SplitActivity_CompleteOnlyOneActivity()
+		public async void SplitActivity_CompleteOnlyOneActivity()
 		{
 			IWaitActivity activity = null;
 
@@ -189,6 +193,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
+			await Task.Yield(); // To avoid race conditions with the activity creation
 			activity.Split();
 			activity.Complete();
 

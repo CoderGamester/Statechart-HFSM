@@ -4,6 +4,20 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2021-05-04
+
+- Improved State documentations
+- Improved State debug logs
+
+**Changed**
+- Removed redundant *SplitFinal* & *SplitExitFinal* methods from *ISplitState*. Now the *Split* method incorporates all possible cases to simplify implementation
+
+**Fixed**
+- Fixed reference checks for *WaitState*
+- Fixed *StatechartTaskWaitTest* to work also when multiple tests run in parallel
+- Fixed *TaskWaitState* racing condition bug on chained states
+- Fixed bug on *WaitState* that when finished instantaneously would execute state transitions multiple times
+
 ## [0.6.0] - 2020-09-29
 
 **Changed**

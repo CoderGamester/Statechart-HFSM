@@ -8,21 +8,46 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc />
 	internal interface IStateFactoryInternal : IStateFactory
 	{
+		/// <summary>
+		/// The Layer that this <see cref="IStateFactory"/> is building upon
+		/// </summary>
 		uint RegionLayer { get; }
+		/// <summary>
+		/// The current <see cref="InitialState"/> that this <see cref="IStateFactory"/> is building upon
+		/// </summary>
 		InitialState InitialState { get; }
+		/// <summary>
+		/// The current <see cref="FinalState"/> that this <see cref="IStateFactory"/> is building upon
+		/// </summary>
 		FinalState FinalState { get; }
+		/// <summary>
+		/// The current list of states that this <see cref="IStateFactory"/> is building upon
+		/// </summary>
 		IList<IStateInternal> States { get; }
+		/// <summary>
+		/// The <see cref="StateFactoryData"/> that this <see cref="IStateFactory"/> is building upon
+		/// </summary>
 		StateFactoryData Data { get; }
+		
+		/// <summary>
+		/// Adds the given list of <paramref name="states"/> to this <see cref="IStateFactory"/> to building upon
+		/// </summary>
+		/// <param name="states"></param>
 		void Add(IList<IStateInternal> states);
 	}
 
 	/// <inheritdoc />
 	internal class StateFactory : IStateFactoryInternal
 	{
+		/// <inheritdoc />
 		public uint RegionLayer { get; private set; }
+		/// <inheritdoc />
 		public InitialState InitialState { get; private set; }
+		/// <inheritdoc />
 		public FinalState FinalState { get; private set; }
+		/// <inheritdoc />
 		public IList<IStateInternal> States { get; private set; }
+		/// <inheritdoc />
 		public StateFactoryData Data { get; private set; }
 
 		private StateFactory()
@@ -40,9 +65,9 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public void Add(IList<IStateInternal> states)
 		{
-			foreach (var state in states)
+			for (var i = 0; i < states.Count; i++)
 			{
-				States.Add(state);
+				States.Add(states[i]);
 			}
 		}
 

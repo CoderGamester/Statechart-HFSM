@@ -1,8 +1,8 @@
 {
   "name": "com.gamelovers.statechart",
   "displayName": "Statechart",
-  "version": "0.6.0",
-  "unity": "2019.3",
+  "version": "0.7.0",
+  "unity": "2020.3",
   "description": "This package allows the use of Statecharts (Hierarchichal State Machine) within an Unity project.\n\nThe primary feature of Statecharts is that states can be organized in a hierarchy.\nA Statecharts is a state machine where each state in the state machine may define its own subordinate state machines, called substates.\nThose states can again define substates.\n\nFor more information: https://statecharts.github.io/what-is-a-statechart.html",
   "type": "library",
   "hideInEditor": false

@@ -42,6 +42,8 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
+			_completed = true;
+			
 			for(int i = 0; i < _onExit.Count; i++)
 			{
 				_onExit[i]?.Invoke();
@@ -137,23 +139,23 @@ namespace GameLovers.Statechart.Internal
 			{
 				if (IsStateLogsEnabled)
 				{
-					Debug.Log($"'{eventName}' event triggers the task wait method '{_taskAwaitAction.Method.Name}'" +
-					          $"from the object {_taskAwaitAction.Target} in the state {Name}");
+					Debug.Log($"TaskWait - '{eventName}' : '{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()' => '{Name}'");
 				}
-				
+
+				await Task.Yield();
 				await _taskAwaitAction();
 			}
 			catch (Exception e)
 			{
-				throw new Exception($"Exception in the state '{Name}', when calling the task wait action {_taskAwaitAction.Method.Name}" +
-				                    $"from the object {_taskAwaitAction.Target}.\n" + CreationStackTrace, e);
+				throw new Exception($"Exception in the state '{Name}', when calling the task wait action " +
+				                    $"'{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()'.\n" + CreationStackTrace, e);
 			}
 
-			_completed = true;
-
 			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-			if (_executionCount - 1 == currentExecution)
+			if (!_completed && _executionCount - 1 == currentExecution)
 			{
+				_completed = true;
+				
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
 		}

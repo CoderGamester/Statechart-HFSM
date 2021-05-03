@@ -8,11 +8,28 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc />
 	internal interface ITransitionInternal : ITransitionCondition
 	{
+		/// <summary>
+		/// The current target state of this transition
+		/// </summary>
 		IStateInternal TargetState { get; }
+		/// <summary>
+		/// True if this transition has a condition to check, false otherwise 
+		/// </summary>
 		bool HasCondition { get; }
+		/// <summary>
+		/// Debug stack trace string
+		/// </summary>
 		string CreationStackTrace { get; }
 		
+		/// <summary>
+		/// Checks the defined transition condition.
+		/// Returns true if the condition is met, false otherwise
+		/// </summary>
+		/// <returns></returns>
 		bool CheckCondition();
+		/// <summary>
+		/// Trigger the defined transition
+		/// </summary>
 		void TriggerTransition();
 	}
 
@@ -34,7 +51,7 @@ namespace GameLovers.Statechart.Internal
 		{
 			var ret = true;
 
-			for(int i = 0; i < _condition.Count; i++)
+			for(var i = 0; i < _condition.Count; i++)
 			{
 				ret = ret && _condition[i].Invoke();
 			}
@@ -45,7 +62,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public void TriggerTransition()
 		{
-			for(int i = 0; i < _onTransition.Count; i++)
+			for(var i = 0; i < _onTransition.Count; i++)
 			{
 				_onTransition[i]?.Invoke();
 			}

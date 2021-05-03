@@ -27,7 +27,6 @@ namespace GameLovers.Statechart
 		ITaskWaitState TaskWait(string name);
 		/// <inheritdoc cref="ISplitState"/>
 		ISplitState Split(string name);
-
 		/// <inheritdoc cref="ILeaveState"/>
 		ILeaveState Leave(string name);
 	}
