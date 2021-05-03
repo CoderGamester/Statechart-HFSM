@@ -94,7 +94,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void PauseRunStatechart()
+		public void PauseRunStateMachine()
 		{
 			var statechart = new StateMachine(SetupEventState);
 
@@ -112,7 +112,7 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void ResetRunStatechart()
+		public void ResetRunStateMachine()
 		{
 			var statechart = new StateMachine(SetupEventState);
 

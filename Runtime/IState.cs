@@ -176,21 +176,6 @@ namespace GameLovers.Statechart
 		/// <see cref="ISplitState"/> is completed.
 		/// It does not execute the <see cref="IFinalState"/> of it's nested states when this
 		/// <see cref="ISplitState"/> is completed.
-		/// </remarks>
-		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2);
-		
-		/// <inheritdoc cref="Split"/>
-		/// <remarks>
-		/// It executes the <see cref="IStateExit.OnExit"/> of the current active states when this
-		/// <see cref="ISplitState"/> is completed.
-		/// If the given <paramref name="executeFinal1"/> or <paramref name="executeFinal2"/> or is true,
-		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event
-		/// or from a <see cref="ILeaveState"/> from one of the inner states.
-		/// </remarks>
-		ITransition SplitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal1, bool executeFinal2);
-		
-		/// <inheritdoc cref="Split"/>
-		/// <remarks>
 		/// If the given <paramref name="executeExit1"/> or <paramref name="executeExit2"/> or is true,
 		/// then the internal current active <see cref="IStateExit.OnExit"/> will be executed when leaving the nested state
 		/// from completion of this <see cref="ISplitState"/>.
@@ -198,9 +183,9 @@ namespace GameLovers.Statechart
 		/// then the internal <see cref="IFinalState"/> will be executed when leaving the nested state from an event
 		/// or from a <see cref="ILeaveState"/> from one of the inner states.
 		/// </remarks>
-		ITransition SplitExitFinal(Action<IStateFactory> setup1, Action<IStateFactory> setup2,
-		                           bool executeExit1, bool executeExit2,
-		                           bool executeFinal1, bool executeFinal2);
+		ITransition Split(Action<IStateFactory> setup1, Action<IStateFactory> setup2,
+		                  bool executeExit1 = true, bool executeExit2 = true,
+		                  bool executeFinal1 = true, bool executeFinal2 = true);
 	}
 
 	/// <summary>

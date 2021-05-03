@@ -19,7 +19,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Enter()
 		{
-			for(int i = 0; i < _onEnter.Count; i++)
+			for(var i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
 			}
@@ -28,7 +28,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			for(int i = 0; i < _onExit.Count; i++)
+			for(var i = 0; i < _onExit.Count; i++)
 			{
 				_onExit[i]?.Invoke();
 			}

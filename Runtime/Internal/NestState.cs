@@ -106,7 +106,7 @@ namespace GameLovers.Statechart.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Nest(Action<IStateFactory> setup, bool executeExit = true, bool executeFinal = false)
+		public ITransition Nest(Action<IStateFactory> setup, bool executeExit = true, bool executeFinal = true)
 		{
 			if (_transition != null)
 			{

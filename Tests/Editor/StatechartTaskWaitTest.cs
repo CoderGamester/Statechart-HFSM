@@ -57,9 +57,9 @@ namespace GameLoversEditor.Statechart.Tests
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			_blocker = false;
-
+			
 			yield return YieldCoroutine();
-				
+			
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.Received().StateOnExitCall(0);
@@ -86,7 +86,7 @@ namespace GameLoversEditor.Statechart.Tests
 			_blocker = false;
 			
 			yield return YieldCoroutine();
-
+				
 			_caller.Received().OnTransitionCall(1);
 			_caller.Received().OnTransitionCall(2);
 			_caller.Received().StateOnExitCall(0);
@@ -187,12 +187,12 @@ namespace GameLoversEditor.Statechart.Tests
 		{
 			while (_blocker)
 			{
-				await Task.Delay(1);
+				await Task.Yield();
 			}
 
 			_done = true;
 		}
-
+		
 		private IEnumerator YieldCoroutine()
 		{
 			while (!_done)

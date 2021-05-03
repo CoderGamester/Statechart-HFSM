@@ -142,7 +142,7 @@ namespace GameLovers.Statechart.Internal
 					Debug.Log($"TaskWait - '{eventName}' : '{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()' => '{Name}'");
 				}
 
-				await Task.Delay(1);
+				await Task.Yield();
 				await _taskAwaitAction();
 			}
 			catch (Exception e)
@@ -152,7 +152,6 @@ namespace GameLovers.Statechart.Internal
 			}
 
 			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-
 			if (!_completed && _executionCount - 1 == currentExecution)
 			{
 				_completed = true;

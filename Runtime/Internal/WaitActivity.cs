@@ -8,9 +8,22 @@ namespace GameLovers.Statechart.Internal
 	/// <inheritdoc />
 	internal interface IWaitActivityInternal : IWaitActivity
 	{
+		/// <summary>
+		/// The unique value id that defines this awaitable <see cref="IWaitActivity"/>
+		/// </summary>
 		uint Id { get; }
+		/// <summary>
+		/// The amount of times this activity has been awaited in the <see cref="WaitState"/>.
+		/// Used to guarantee that inner awaitable calls don't bypass parent awaitable calls on a chain of <see cref="WaitState"/>
+		/// </summary>
 		uint ExecutionCount { get; set; }
+		/// <summary>
+		/// Returns true if this activity has been marked as completed, false otherwise
+		/// </summary>
 		bool IsCompleted { get; }
+		/// <summary>
+		/// Resets the state of this activity to it's initial values
+		/// </summary>
 		void Reset();
 	}
 

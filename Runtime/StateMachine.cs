@@ -64,21 +64,16 @@ namespace GameLovers.Statechart
 
 		public StateMachine(Action<IStateFactory> setup)
 		{
-			var stateFactory = new StateFactory(0, new StateFactoryData { StateMachine = this, StateChartMoveNextCall = MoveNext });
+			var data = new StateFactoryData { StateMachine = this, StateChartMoveNextCall = MoveNext };
+			var stateFactory = new StateFactory(0, data);
 
 			setup(stateFactory);
 
 			_stateFactory = stateFactory;
-
-			if (_stateFactory.InitialState == null)
-			{
-				throw new MissingMemberException("State chart doesn't have initial state");
-			}
-
-			_currentState = _stateFactory.InitialState;
+			_currentState = _stateFactory.InitialState ?? throw new MissingMemberException("State chart doesn't have initial state");
 
 #if UNITY_EDITOR || DEBUG
-			for(int i = 0; i < _stateFactory.States.Count; i++)
+			for(var i = 0; i < _stateFactory.States.Count; i++)
 			{
 				_stateFactory.States[i].Validate();
 			}

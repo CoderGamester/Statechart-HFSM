@@ -63,7 +63,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
 
-		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
+		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.StateMachine.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{

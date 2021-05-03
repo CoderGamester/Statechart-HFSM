@@ -486,20 +486,8 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			if (!executeExit)
-			{
-				split.SplitExitFinal(setup1, setup2, false, false, executeFinal, executeFinal)
-				     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
-			}
-			else if (executeFinal)
-			{
-				split.SplitFinal(setup1, setup2, true, true)
-				     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
-			}
-			else
-			{
-				split.Split(setup1, setup2).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
-			}
+			split.Split(setup1, setup2, executeExit, executeExit, executeFinal, executeFinal)
+			     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			split.OnExit(() => _caller.StateOnExitCall(1));
 
