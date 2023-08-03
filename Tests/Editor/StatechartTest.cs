@@ -1,11 +1,11 @@
 using System;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartTest
@@ -33,7 +33,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new StateMachine(SetupSimple);
+			var statechart = new Statechart(SetupSimple);
 
 			statechart.Run();
 
@@ -45,7 +45,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup_TransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
@@ -60,7 +60,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void InitialState_StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 
@@ -71,7 +71,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void InitialState_MultipleTransitions_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("Final");
@@ -87,7 +87,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void NoInitialState_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
 				var final = factory.Final("final");
 
@@ -98,7 +98,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void MultipleInitialStates_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial1 = factory.Initial("Initial1");
 				var initial2 = factory.Initial("Initial2");
@@ -111,7 +111,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void MultipleFinalState_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final1 = factory.Final("final1");

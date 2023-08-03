@@ -1,12 +1,12 @@
 using System;
 using System.Threading.Tasks;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartWaitTest
@@ -35,11 +35,11 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public async void BasicSetup()
+		public async Task BasicSetup()
 		{
 			IWaitActivity activity = null;
 
-			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -63,7 +63,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void EventTrigger()
 		{
-			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => { }));
+			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => { }));
 
 			statechart.Run();
 
@@ -84,11 +84,11 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public async void NestState_OuterEventTriggerAndActivityComplete_NoTransition()
+		public async Task NestState_OuterEventTriggerAndActivityComplete_NoTransition()
 		{
 			IWaitActivity activity = null;
 			
-			var statechart = new StateMachine(InternalSetupNest);
+			var statechart = new Statechart(InternalSetupNest);
 
 			statechart.Run();
 
@@ -132,7 +132,7 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void InternalSetupNest(IStateFactory factory)
 			{
-				SetupNest(factory, _event2, InnerSetupWaitState, true, false);
+				SetupNest(factory, _event2,new NestedStateData(InnerSetupWaitState, true, false));
 			}
 
 			void InnerSetupWaitState(IStateFactory factory)
@@ -142,12 +142,12 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public async void SplitActivity_CompleteBoth()
+		public async Task SplitActivity_CompleteBoth()
 		{
 			IWaitActivity activity = null;
 			IWaitActivity activitySplit = null;
 
-			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -177,11 +177,11 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public async void SplitActivity_CompleteOnlyOneActivity()
+		public async Task SplitActivity_CompleteOnlyOneActivity()
 		{
 			IWaitActivity activity = null;
 
-			var statechart = new StateMachine(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
+			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
 
@@ -211,7 +211,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var waiting = factory.Wait("Waiting");
@@ -243,8 +243,7 @@ namespace GameLoversEditor.Statechart.Tests
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 
-		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> nestSetup,
-		                       bool executeExit, bool executeFinal)
+		private void SetupNest(IStateFactory factory, IStatechartEvent eventTrigger, NestedStateData nestedStateData)
 		{
 			var initial = factory.Initial("Initial");
 			var nest = factory.Nest("Nest");
@@ -254,7 +253,7 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			nest.OnEnter(() => _caller.StateOnEnterCall(1));
-			nest.Nest(nestSetup, executeExit, executeFinal).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
+			nest.Nest(nestedStateData).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			nest.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(5)).Target(final);
 			nest.OnExit(() => _caller.StateOnExitCall(1));
 

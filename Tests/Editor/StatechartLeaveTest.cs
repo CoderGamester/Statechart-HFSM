@@ -1,11 +1,11 @@
 using System;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartLeaveTest
@@ -36,7 +36,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void NestStateBasicSetup()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -70,7 +70,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void NestStateBasicSetup_ExecuteFinal_SameResult()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -104,7 +104,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void SplitStateBasicSetup()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -127,7 +127,7 @@ namespace GameLoversEditor.Statechart.Tests
 			{
 				var state = factory.State("State");
 
-				SetupSplit(factory, SetupSimple, nestFactory => SetupLeave(nestFactory, state), false);
+				SetupSplit(factory, true, SetupSimple, nestFactory => SetupLeave(nestFactory, state));
 
 				state.OnEnter(() => _caller.StateOnEnterCall(2));
 				state.OnExit(() => _caller.StateOnExitCall(2));
@@ -137,7 +137,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void SplitStateBasicSetup_ExecuteFinal_SameResult()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -160,7 +160,7 @@ namespace GameLoversEditor.Statechart.Tests
 			{
 				var state = factory.State("State");
 
-				SetupSplit(factory, SetupSimple, nestFactory => SetupLeave(nestFactory, state), true);
+				SetupSplit(factory, true, SetupSimple, nestFactory => SetupLeave(nestFactory, state));
 
 				state.OnEnter(() => _caller.StateOnEnterCall(2));
 				state.OnExit(() => _caller.StateOnExitCall(2));
@@ -170,7 +170,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void NoSplitFinalized_LeaveOneSplit_LeaveAll()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -194,7 +194,8 @@ namespace GameLoversEditor.Statechart.Tests
 			{
 				var state = factory.State("State");
 
-				SetupSplit(factory, SetupSimpleEventState, nestFactory => SetupLeave(nestFactory, state), false);
+				SetupSplit(factory, false, SetupSimpleEventState, 
+				           nestFactory => SetupLeave(nestFactory, state));
 
 				state.OnEnter(() => _caller.StateOnEnterCall(2));
 				state.OnExit(() => _caller.StateOnExitCall(2));
@@ -204,7 +205,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void NoSplitFinalized_LeaveOneSplitExecuteFinal_ExecuteOtherSplitFinal()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -228,7 +229,7 @@ namespace GameLoversEditor.Statechart.Tests
 			{
 				var state = factory.State("State");
 
-				SetupSplit(factory, SetupSimpleEventState, nestFactory => SetupLeave(nestFactory, state), true);
+				SetupSplit(factory,true, SetupSimpleEventState, nestFactory => SetupLeave(nestFactory, state));
 
 				state.OnEnter(() => _caller.StateOnEnterCall(2));
 				state.OnExit(() => _caller.StateOnExitCall(2));
@@ -238,7 +239,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup_NestStateTransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
 				SetupNest(factory, SetupLeave_WithoutTarget, false);
 			}));
@@ -247,16 +248,16 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup_SplitStateTransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new StateMachine(factory =>
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
-				SetupSplit(factory, SetupSimple, SetupLeave_WithoutTarget, false);
+				SetupSplit(factory, false, SetupSimple, SetupLeave_WithoutTarget);
 			}));
 		}
 
 		[Test]
 		public void SameLayerTarget_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var leave = factory.Leave("Leave");
@@ -272,7 +273,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void WrongLayerTarget_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var state = factory.State("State");
 
@@ -288,7 +289,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void MultipleTransitions_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var state = factory.State("State");
 
@@ -379,25 +380,30 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			nest.OnEnter(() => _caller.StateOnEnterCall(1));
-			nest.Nest(nestSetup, true, executeFinal).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			nest.Nest(new NestedStateData(nestSetup, true, executeFinal)).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			nest.Event(_event2).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			nest.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(1));
 		}
 
-		private void SetupSplit(IStateFactory factory, Action<IStateFactory> setup1, Action<IStateFactory> setup2, bool executeFinal)
+		private void SetupSplit(IStateFactory factory, bool executeFinal, params Action<IStateFactory>[] setups)
 		{
 			var initial = factory.Initial("Initial");
 			var split = factory.Split("Split");
 			var final = factory.Final("final");
+			var data = new NestedStateData[setups.Length];
+
+			for (var i = 0; i < setups.Length; i++)
+			{
+				data[i] = new NestedStateData(setups[i], true, executeFinal);
+			}
 
 			initial.Transition().OnTransition(() => _caller.OnTransitionCall(2)).Target(split);
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setup1, setup2, true, true,executeFinal, executeFinal)
-			     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			split.Split(data).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			split.Event(_event2).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			split.OnExit(() => _caller.StateOnExitCall(1));
 

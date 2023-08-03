@@ -1,6 +1,6 @@
 ﻿// ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart.Internal
+namespace GameLovers.StatechartMachine.Internal
 {
 	/// <summary>
 	/// Helper class for the statechart to work properly

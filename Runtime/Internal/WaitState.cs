@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart.Internal
+namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc cref="IWaitState"/>
 	internal class WaitState : StateInternal, IWaitState

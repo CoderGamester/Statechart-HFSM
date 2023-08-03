@@ -1,13 +1,13 @@
 using System;
-using GameLovers.Statechart.Internal;
+using GameLovers.StatechartMachine.Internal;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart
+namespace GameLovers.StatechartMachine
 {
 	/// <summary>
-	/// Interface to help debug the state chart
-	/// </summary>
+	 /// Interface to help debug the state chart
+	 /// </summary>
 	public interface IStateMachineDebug
 	{
 		/// <summary>
@@ -21,7 +21,7 @@ namespace GameLovers.Statechart
 	/// The State Chart schematics are defined in the constructor setup action and cannot be modified during runtime. 
 	/// See <see cref="http://www.omg.org/spec/UML"/> for Semantics.
 	/// </summary>
-	public interface IStateMachine : IStateMachineDebug
+	public interface IStatechart : IStateMachineDebug
 	{
 		/// <summary>
 		/// Processes the event <param name="trigger"></param> for the State Chart with run-to-completion paradigm.
@@ -49,8 +49,8 @@ namespace GameLovers.Statechart
 		void Reset();
 	}
 
-	/// <inheritdoc cref="IStateMachine"/>
-	public class StateMachine : IStateMachine
+	/// <inheritdoc cref="IStatechart"/>
+	public class Statechart : IStatechart
 	{
 		private bool _isRunning;
 		private IStateInternal _currentState;
@@ -60,20 +60,34 @@ namespace GameLovers.Statechart
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
 
-		private StateMachine() {}
+#if DEVELOPMENT_BUILD
+		public Stopwatch StateWatch = new ();
+		public static Action<string, long> OnStateTimed;
+#endif
 
-		public StateMachine(Action<IStateFactory> setup)
+#if UNITY_EDITOR
+		public string CurrentState => _currentState.Name;
+#endif
+		
+		private Statechart() {}
+
+		public Statechart(Action<IStateFactory> setup)
 		{
-			var data = new StateFactoryData { StateMachine = this, StateChartMoveNextCall = MoveNext };
-			var stateFactory = new StateFactory(0, data);
+			var stateFactory = new StateFactory(0, new StateFactoryData { Statechart = this, StateChartMoveNextCall = MoveNext });
 
 			setup(stateFactory);
 
 			_stateFactory = stateFactory;
-			_currentState = _stateFactory.InitialState ?? throw new MissingMemberException("State chart doesn't have initial state");
+
+			if (_stateFactory.InitialState == null)
+			{
+				throw new MissingMemberException("State chart doesn't have initial state");
+			}
+
+			_currentState = _stateFactory.InitialState;
 
 #if UNITY_EDITOR || DEBUG
-			for(var i = 0; i < _stateFactory.States.Count; i++)
+			for(int i = 0; i < _stateFactory.States.Count; i++)
 			{
 				_stateFactory.States[i].Validate();
 			}
@@ -111,14 +125,36 @@ namespace GameLovers.Statechart
 			_currentState = _stateFactory.InitialState;
 		}
 
+#if DEVELOPMENT_BUILD
+		private void MeasureTime()
+		{
+			if (StateWatch.IsRunning)
+			{
+				StateWatch.Stop();
+				OnStateTimed?.Invoke(_currentState.Name, StateWatch.ElapsedMilliseconds);
+				StateWatch.Reset();
+			}
+		}
+#endif
+
 		private void MoveNext(IStatechartEvent trigger)
 		{
+#if DEVELOPMENT_BUILD
+			if (StateWatch.IsRunning && _currentState != null)
+			{
+				MeasureTime();
+			}
+#endif
 			var nextState = _currentState.Trigger(trigger);
-
 			while (nextState != null)
 			{
+#if DEVELOPMENT_BUILD
+				StateWatch.Start();
+#endif
 				_currentState = nextState;
 				nextState = _currentState.Trigger(null);
+				
+				
 			}
 		}
 	}

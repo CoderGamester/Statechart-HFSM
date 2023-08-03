@@ -1,11 +1,11 @@
 using System;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartStateTest
@@ -35,7 +35,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new StateMachine(SetupEventState);
+			var statechart = new Statechart(SetupEventState);
 
 			statechart.Run();
 
@@ -56,7 +56,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup_TransitionWithoutTarget()
 		{
-			var statechart = new StateMachine(SetupEventState_WithoutTarget);
+			var statechart = new Statechart(SetupEventState_WithoutTarget);
 
 			statechart.Run();
 
@@ -77,7 +77,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void TriggerNotConfiguredEvent_DoesNothing()
 		{
-			var statechart = new StateMachine(SetupEventState);
+			var statechart = new Statechart(SetupEventState);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -94,9 +94,9 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void PauseRunStateMachine()
+		public void PauseRunStatechart()
 		{
-			var statechart = new StateMachine(SetupEventState);
+			var statechart = new Statechart(SetupEventState);
 
 			statechart.Run();
 			statechart.Pause();
@@ -112,9 +112,9 @@ namespace GameLoversEditor.Statechart.Tests
 		}
 
 		[Test]
-		public void ResetRunStateMachine()
+		public void ResetRunStatechart()
 		{
-			var statechart = new StateMachine(SetupEventState);
+			var statechart = new Statechart(SetupEventState);
 
 			statechart.Run();
 			statechart.Reset();
@@ -132,7 +132,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var state = factory.State("State");

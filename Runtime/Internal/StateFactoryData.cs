@@ -2,11 +2,11 @@ using System;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart.Internal
+namespace GameLovers.StatechartMachine.Internal
 {
 	internal struct StateFactoryData
 	{
 		public Action<IStatechartEvent> StateChartMoveNextCall;
-		public IStateMachineDebug StateMachine;
+		public IStatechart Statechart;
 	}
 }

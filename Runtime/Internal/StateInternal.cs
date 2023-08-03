@@ -3,7 +3,7 @@ using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart.Internal
+namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc cref="IState"/>
 	internal interface IStateInternal : IState, IEquatable<IStateInternal>
@@ -63,7 +63,7 @@ namespace GameLovers.Statechart.Internal
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
 
-		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.StateMachine.LogsEnabled;
+		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{

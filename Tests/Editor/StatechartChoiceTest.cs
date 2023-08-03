@@ -1,11 +1,11 @@
 using System;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartChoiceTest
@@ -36,7 +36,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new StateMachine(SetupChoiceState);
+			var statechart = new Statechart(SetupChoiceState);
 
 			_condition1 = false;
 			_condition2 = true;
@@ -56,13 +56,13 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup_WithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new StateMachine(SetupChoiceState_WithoutTarget));
+			Assert.Throws<MissingMemberException>(() => new Statechart(SetupChoiceState_WithoutTarget));
 		}
 
 		[Test]
 		public void MultipleTrueConditions_PicksFirstTransition()
 		{
-			var statechart = new StateMachine(SetupChoiceState);
+			var statechart = new Statechart(SetupChoiceState);
 
 			_condition1 = true;
 			_condition2 = true;
@@ -85,7 +85,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var choice = factory.Choice("Choice");
@@ -104,7 +104,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void MissingTransition_ThrowsException()
 		{
-			Assert.Throws<MissingMethodException>(() => new StateMachine(factory =>
+			Assert.Throws<MissingMethodException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var choice = factory.Choice("Choice");
