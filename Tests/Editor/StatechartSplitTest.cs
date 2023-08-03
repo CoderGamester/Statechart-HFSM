@@ -1,11 +1,11 @@
 using System;
-using GameLovers.Statechart;
+using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLoversEditor.Statechart.Tests
+namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartSplitTest
@@ -35,7 +35,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void BasicSetup()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -53,14 +53,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimple, SetupSimple, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimple, true, false),
+				           new NestedStateData(SetupSimple, true, false)
+				           );
 			}
 		}
 
 		[Test]
 		public void BasicSetup_WithoutTarget()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -85,7 +88,7 @@ namespace GameLoversEditor.Statechart.Tests
 		[Test]
 		public void InnerEventTrigger()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -106,14 +109,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void InnerEventTrigger_ExecuteFinal_SameResult()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -134,14 +140,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, true);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, true),
+				           new NestedStateData(SetupSimpleEventState, true, true)
+				          );
 			}
 		}
 
 		[Test]
 		public void InnerEventTrigger_NotExecuteExit_SameResult()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -162,14 +171,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, false, false),
+				           new NestedStateData(SetupSimpleEventState, false, false)
+				           );
 			}
 		}
 
 		[Test]
 		public void OuterEventTrigger()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -190,14 +202,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				           );
 			}
 		}
 
 		[Test]
 		public void OuterEventTrigger_ExecuteFinal()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -218,14 +233,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, true);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, true),
+				           new NestedStateData(SetupSimpleEventState, true, true)
+				           );
 			}
 		}
 
 		[Test]
 		public void OuterEventTrigger_NotExecuteExit()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -246,14 +264,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, false, false),
+				           new NestedStateData(SetupSimpleEventState, false, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void OuterEventTrigger_NotExecuteExit_ExecuteFinal()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -274,14 +295,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, false, true);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, false, true),
+				           new NestedStateData(SetupSimpleEventState, false, true)
+				          );
 			}
 		}
 
 		[Test]
 		public void NestedStates_InnerEventTrigger()
 		{
-			var statechart = new StateMachine(SetupLayer0);
+			var statechart = new Statechart(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -302,19 +326,25 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupLayer1, true, false),
+				           new NestedStateData(SetupLayer1, true, false)
+				          );
 			}
 			
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void NestedStates_OuterEventTrigger()
 		{
-			var statechart = new StateMachine(SetupLayer0);
+			var statechart = new Statechart(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -335,19 +365,25 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupLayer1, true, false),
+				           new NestedStateData(SetupLayer1, true, false)
+				          );
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event1, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event1, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void NestedStates_OuterEventTriggerSameTrigger_ExecutesMostOuter()
 		{
-			var statechart = new StateMachine(SetupLayer0);
+			var statechart = new Statechart(SetupLayer0);
 
 			statechart.Run();
 			statechart.Trigger(_event2);
@@ -368,19 +404,25 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void SetupLayer0(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupLayer1, SetupLayer1, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupLayer1, true, false),
+				           new NestedStateData(SetupLayer1, true, false)
+				          );
 			}
 
 			void SetupLayer1(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void StatechartSplit_RunResetRun()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -404,14 +446,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimpleEventState, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimpleEventState, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void StatechartSplit_HalfFinal_NotFinalized()
 		{
-			var statechart = new StateMachine(Setup);
+			var statechart = new Statechart(Setup);
 
 			statechart.Run();
 
@@ -424,14 +469,17 @@ namespace GameLoversEditor.Statechart.Tests
 
 			void Setup(IStateFactory factory)
 			{
-				SetupSplit(factory, _event2, SetupSimpleEventState, SetupSimple, true, false);
+				SetupSplit(factory, _event2, 
+				           new NestedStateData(SetupSimpleEventState, true, false),
+				           new NestedStateData(SetupSimple, true, false)
+				          );
 			}
 		}
 
 		[Test]
 		public void SplitState_StateTransitionsLoop_ThrowsException()
 		{
-			Assert.Throws<InvalidOperationException>(() => new StateMachine(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var split = factory.Split("Nest");
@@ -475,8 +523,7 @@ namespace GameLoversEditor.Statechart.Tests
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 
-		private void SetupSplit(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> setup1, 
-		                        Action<IStateFactory> setup2, bool executeExit, bool executeFinal)
+		private void SetupSplit(IStateFactory factory, IStatechartEvent eventTrigger, params NestedStateData[] data)
 		{
 			var initial = factory.Initial("Initial");
 			var split = factory.Split("Split");
@@ -486,16 +533,14 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setup1, setup2, executeExit, executeExit, executeFinal, executeFinal)
-			     .OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			split.Split(data).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
 			split.OnExit(() => _caller.StateOnExitCall(1));
 
 			final.OnEnter(() => _caller.FinalOnEnterCall(1));
 		}
 
-		private void SetupSplit_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, Action<IStateFactory> setup1, 
-		                        Action<IStateFactory> setup2)
+		private void SetupSplit_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, params Action<IStateFactory>[] setups)
 		{
 			var initial = factory.Initial("Initial");
 			var split = factory.Split("Split");
@@ -505,7 +550,7 @@ namespace GameLoversEditor.Statechart.Tests
 			initial.OnExit(() => _caller.InitialOnExitCall(1));
 
 			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setup1, setup2).OnTransition(() => _caller.OnTransitionCall(3));
+			split.Split(setups).OnTransition(() => _caller.OnTransitionCall(3));
 			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
 			split.OnExit(() => _caller.StateOnExitCall(1));
 

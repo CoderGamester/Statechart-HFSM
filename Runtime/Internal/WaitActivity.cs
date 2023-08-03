@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart.Internal
+namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc />
 	internal interface IWaitActivityInternal : IWaitActivity

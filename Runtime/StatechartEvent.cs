@@ -2,11 +2,11 @@ using System;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart
+namespace GameLovers.StatechartMachine
 {
 	/// <summary>
 	/// Events are unique inputs to make the State Chart move forward when defined in the setup.
-	/// It requires to call <see cref="IStateMachine.Trigger(IStatechartEvent)"/> to move the State Chart forward.
+	/// It requires to call <see cref="IStatechart.Trigger(IStatechartEvent)"/> to move the State Chart forward.
 	/// </summary>
 	public interface IStatechartEvent : IEquatable<IStatechartEvent>
 	{
@@ -29,9 +29,9 @@ namespace GameLovers.Statechart
 		private static uint _idRef;
 
 		/// <inheritdoc />
-		public uint Id { get; private set; }
+		public uint Id { get; }
 		/// <inheritdoc />
-		public string Name { get; private set; }
+		public string Name { get; }
 
 		private StatechartEvent() {}
 

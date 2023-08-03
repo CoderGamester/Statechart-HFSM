@@ -1,11 +1,11 @@
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.Statechart
+namespace GameLovers.StatechartMachine
 {
 	/// <summary>
-	/// The state factory is used to setup the <see cref="IStateMachine"/> representation of states and transitions
-	/// There is always a state factory being created per region in the <see cref="IStateMachine"/>.
-	/// A state factory is also the data container of the states and transitions of the <see cref="IStateMachine"/>
+	/// The state factory is used to setup the <see cref="IStatechart"/> representation of states and transitions
+	/// There is always a state factory being created per region in the <see cref="IStatechart"/>.
+	/// A state factory is also the data container of the states and transitions of the <see cref="IStatechart"/>
 	/// </summary>
 	public interface IStateFactory
 	{
