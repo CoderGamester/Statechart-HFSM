@@ -287,13 +287,13 @@ namespace GameLovers.StatechartMachine.Internal
 					}
 				}
 
-				if (innerState.CurrenState is not FinalState)
-				{
-					nextTransition = null;
-				}
-				else if (innerState.CurrenState is LeaveState state)
+				if (innerState.CurrenState is LeaveState state)
 				{
 					leaveState = state;
+				}
+				else if (innerState.CurrenState is not FinalState)
+				{
+					nextTransition = null;
 				}
 
 				_innerStatesData[i] = innerState;

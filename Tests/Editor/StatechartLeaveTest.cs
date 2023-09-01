@@ -30,7 +30,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			statechart.Run();
 
 			_caller.Received(2).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.DidNotReceive().OnTransitionCall(3);
 			_caller.Received(2).InitialOnExitCall(0);
@@ -43,12 +43,12 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		public void SimpleSplitTest()
 		{
-			var statechart = new Statechart(SetupNest);
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
 
 			_caller.Received(3).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.DidNotReceive().OnTransitionCall(3);
 			_caller.Received(3).InitialOnExitCall(0);
