@@ -10,419 +10,210 @@ namespace GameLoversEditor.StatechartMachine.Tests
 	[TestFixture]
 	public class StatechartSplitTest
 	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-
-		private IMockCaller _caller;
 		private readonly IStatechartEvent _event1 = new StatechartEvent("Event1");
 		private readonly IStatechartEvent _event2 = new StatechartEvent("Event2");
-		
+
+		private IMockCaller _caller;
+		private NestedStateData[] _nestedStateData;
+
 		[SetUp]
 		public void Init()
 		{
 			_caller = Substitute.For<IMockCaller>();
-		}
-
-		[Test]
-		public void BasicSetup()
-		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event1);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.Received(1).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
+			_nestedStateData = new NestedStateData[]
 			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimple, true, false),
-				           new NestedStateData(SetupSimple, true, false)
-				           );
-			}
+				 new NestedStateData(SetupNestedFlow),
+				 new NestedStateData(SetupNestedFlow)
+			};
 		}
 
 		[Test]
-		public void BasicSetup_WithoutTarget()
+		public void SimpleTest()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
-			statechart.Trigger(_event2);
 
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.Received(1).OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
 			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.DidNotReceive().FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit_WithoutTarget(factory, _event2, SetupSimple, SetupSimple);
-			}
-		}
-
-		[Test]
-		public void InnerEventTrigger()
-		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event1);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.Received(2).OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.Received(1).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(2).StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				          );
-			}
-		}
-
-		[Test]
-		public void InnerEventTrigger_ExecuteFinal_SameResult()
-		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event1);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.Received(2).OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.Received(1).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(2).StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, true),
-				           new NestedStateData(SetupSimpleEventState, true, true)
-				          );
-			}
-		}
-
-		[Test]
-		public void InnerEventTrigger_NotExecuteExit_SameResult()
-		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event1);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.Received(2).OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.Received(1).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(2).StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, false, false),
-				           new NestedStateData(SetupSimpleEventState, false, false)
-				           );
-			}
-		}
-
-		[Test]
-		public void OuterEventTrigger()
-		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event2);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(2).StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				           );
-			}
 		}
 
 		[Test]
-		public void OuterEventTrigger_ExecuteFinal()
+		public void SplitedState_WithoutTarget_Successful()
 		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event2);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.Received(2).StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
+			var statechart = new Statechart(factory =>
 			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, true),
-				           new NestedStateData(SetupSimpleEventState, true, true)
-				           );
-			}
-		}
+				var split = factory.Split("Split");
+				var final = SetupSimpleFlow(factory, split);
 
-		[Test]
-		public void OuterEventTrigger_NotExecuteExit()
-		{
-			var statechart = new Statechart(Setup);
+				split.OnEnter(() => _caller.StateOnEnterCall(1));
+				split.Split(_nestedStateData).OnTransition(() => _caller.OnTransitionCall(2));
+				split.OnExit(() => _caller.StateOnExitCall(1));
+			});
 
 			statechart.Run();
-			statechart.Trigger(_event2);
 
-			_caller.Received(2).OnTransitionCall(0);
+			_caller.Received(3).OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
+			_caller.Received(3).InitialOnExitCall(0);
 			_caller.Received(2).StateOnEnterCall(0);
 			_caller.Received(1).StateOnEnterCall(1);
 			_caller.DidNotReceive().StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
+			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, false, false),
-				           new NestedStateData(SetupSimpleEventState, false, false)
-				          );
-			}
 		}
 
 		[Test]
-		public void OuterEventTrigger_NotExecuteExit_ExecuteFinal()
+		public void SplitedState_InnerEventTrigger_CompleteSuccess()
 		{
-			var statechart = new Statechart(Setup);
-
-			statechart.Run();
-			statechart.Trigger(_event2);
-
-			_caller.Received(2).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(1).OnTransitionCall(2);
-			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(2).InitialOnExitCall(0);
-			_caller.Received(1).InitialOnExitCall(1);
-			_caller.Received(2).StateOnEnterCall(0);
-			_caller.Received(1).StateOnEnterCall(1);
-			_caller.DidNotReceive().StateOnExitCall(0);
-			_caller.Received(1).StateOnExitCall(1);
-			_caller.Received(2).FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, false, true),
-				           new NestedStateData(SetupSimpleEventState, false, true)
-				          );
-			}
-		}
-
-		[Test]
-		public void NestedStates_InnerEventTrigger()
-		{
-			var statechart = new Statechart(SetupLayer0);
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
 
-			_caller.Received(4).OnTransitionCall(0);
-			_caller.Received(4).OnTransitionCall(1);
-			_caller.Received(3).OnTransitionCall(2);
-			_caller.Received(3).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(4).InitialOnExitCall(0);
-			_caller.Received(3).InitialOnExitCall(1);
-			_caller.Received(4).StateOnEnterCall(0);
-			_caller.Received(3).StateOnEnterCall(1);
-			_caller.Received(4).StateOnExitCall(0);
-			_caller.Received(3).StateOnExitCall(1);
-			_caller.Received(4).FinalOnEnterCall(0);
-			_caller.Received(3).FinalOnEnterCall(1);
-
-			void SetupLayer0(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupLayer1, true, false),
-				           new NestedStateData(SetupLayer1, true, false)
-				          );
-			}
-			
-			void SetupLayer1(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				          );
-			}
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(2).OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
 		}
 
 		[Test]
-		public void NestedStates_OuterEventTrigger()
+		public void SplitedState_InnerEventTrigger_HalfFinalized_OnHold()
 		{
-			var statechart = new Statechart(SetupLayer0);
+			_nestedStateData[0].Setup = factory =>
+			{
+				var state = factory.State("State");
+				var final = SetupSimpleFlow(factory, state);
+
+				state.OnEnter(() => _caller.StateOnEnterCall(0));
+				state.OnExit(() => _caller.StateOnExitCall(0));
+			};
+
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
-			statechart.Trigger(_event2);
+			statechart.Trigger(_event1);
 
-			_caller.Received(4).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(3).OnTransitionCall(2);
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(1).OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
 			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(4).InitialOnExitCall(0);
-			_caller.Received(3).InitialOnExitCall(1);
-			_caller.Received(4).StateOnEnterCall(0);
-			_caller.Received(3).StateOnEnterCall(1);
-			_caller.Received(4).StateOnExitCall(0);
-			_caller.Received(3).StateOnExitCall(1);
-			_caller.DidNotReceive().FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void SetupLayer0(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupLayer1, true, false),
-				           new NestedStateData(SetupLayer1, true, false)
-				          );
-			}
-
-			void SetupLayer1(IStateFactory factory)
-			{
-				SetupSplit(factory, _event1, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				          );
-			}
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(1).StateOnExitCall(0);
+			_caller.DidNotReceive().StateOnExitCall(1);
+			_caller.Received(1).FinalOnEnterCall(0);
 		}
 
 		[Test]
-		public void NestedStates_OuterEventTriggerSameTrigger_ExecutesMostOuter()
+		public void SplitedState_InnerEventTrigger_DisableExecuteFinal_CompleteSuccess()
 		{
-			var statechart = new Statechart(SetupLayer0);
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
-			statechart.Trigger(_event2);
+			statechart.Trigger(_event1);
 
-			_caller.Received(4).OnTransitionCall(0);
-			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(3).OnTransitionCall(2);
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(2).OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
 			_caller.DidNotReceive().OnTransitionCall(3);
-			_caller.Received(1).OnTransitionCall(4);
-			_caller.Received(4).InitialOnExitCall(0);
-			_caller.Received(3).InitialOnExitCall(1);
-			_caller.Received(4).StateOnEnterCall(0);
-			_caller.Received(3).StateOnEnterCall(1);
-			_caller.Received(4).StateOnExitCall(0);
-			_caller.Received(3).StateOnExitCall(1);
-			_caller.DidNotReceive().FinalOnEnterCall(0);
-			_caller.Received(1).FinalOnEnterCall(1);
-
-			void SetupLayer0(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupLayer1, true, false),
-				           new NestedStateData(SetupLayer1, true, false)
-				          );
-			}
-
-			void SetupLayer1(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				          );
-			}
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
 		}
 
 		[Test]
-		public void StatechartSplit_RunResetRun()
+		public void SplitedState_InnerEventTrigger_DisableExecuteExit_CompleteSuccess()
 		{
-			var statechart = new Statechart(Setup);
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteExit = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(2).OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void SplitedState_InnerEventTrigger_DisableExecuteExitFinal_CompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+				data.ExecuteExit = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(2).OnTransitionCall(1);
+			_caller.Received(1).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void SplitedState_InnerEventTrigger_RunResetRun_CompleteSuccess()
+		{
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
 			statechart.Trigger(_event1);
@@ -430,131 +221,374 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			statechart.Run();
 			statechart.Trigger(_event1);
 
-			_caller.Received(4).OnTransitionCall(0);
+			_caller.Received(6).OnTransitionCall(0);
 			_caller.Received(4).OnTransitionCall(1);
 			_caller.Received(2).OnTransitionCall(2);
-			_caller.Received(2).OnTransitionCall(3);
-			_caller.DidNotReceive().OnTransitionCall(4);
-			_caller.Received(4).InitialOnExitCall(0);
-			_caller.Received(2).InitialOnExitCall(1);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(6).InitialOnExitCall(0);
 			_caller.Received(4).StateOnEnterCall(0);
 			_caller.Received(2).StateOnEnterCall(1);
 			_caller.Received(4).StateOnExitCall(0);
 			_caller.Received(2).StateOnExitCall(1);
-			_caller.Received(4).FinalOnEnterCall(0);
-			_caller.Received(2).FinalOnEnterCall(1);
-
-			void Setup(IStateFactory factory)
-			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimpleEventState, true, false)
-				          );
-			}
+			_caller.Received(6).FinalOnEnterCall(0);
 		}
 
 		[Test]
-		public void StatechartSplit_HalfFinal_NotFinalized()
+		public void SplitedState_EventTrigger_ForceCompleteSuccess()
 		{
-			var statechart = new Statechart(Setup);
+			var statechart = new Statechart(SetupSplit);
 
 			statechart.Run();
+			statechart.Trigger(_event2);
 
-			_caller.Received(2).OnTransitionCall(0);
+			_caller.Received(3).OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
-			_caller.Received(2).InitialOnExitCall(0);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
 			_caller.Received(1).StateOnEnterCall(1);
-			_caller.DidNotReceive().StateOnExitCall(1);
-			_caller.Received(1).FinalOnEnterCall(0);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
+		}
 
-			void Setup(IStateFactory factory)
+		[Test]
+		public void SplitedState_EventTrigger_DisableExecuteExit_ForceCompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
 			{
-				SetupSplit(factory, _event2, 
-				           new NestedStateData(SetupSimpleEventState, true, false),
-				           new NestedStateData(SetupSimple, true, false)
-				          );
+				var data = _nestedStateData[i];
+
+				data.ExecuteExit = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(3).FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void SplitedState_EventTrigger_DisableExecuteFinal_ForceCompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.Received(2).StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(1).FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void SplitedState_EventTrigger_DisableExecuteExitFinal_ForceCompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+				data.ExecuteExit = false;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(1).FinalOnEnterCall(0);
+		}
+
+		[Test]
+		public void MultipleSplitedStates_InnerEventTrigger_CompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.Setup = SetupLayer0;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received(5).OnTransitionCall(0);
+			_caller.Received(3).OnTransitionCall(1);
+			_caller.Received(2).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(5).InitialOnExitCall(0);
+			_caller.Received(3).StateOnEnterCall(0);
+			_caller.Received(2).StateOnEnterCall(1);
+			_caller.Received(3).StateOnExitCall(0);
+			_caller.Received(2).StateOnExitCall(1);
+			_caller.Received(5).FinalOnEnterCall(0);
+
+			void SetupLayer0(IStateFactory factory)
+			{
+				for (int i = 0; i < _nestedStateData.Length; i++)
+				{
+					var data = _nestedStateData[i];
+
+					data.Setup = SetupNestedFlow;
+
+					_nestedStateData[i] = data;
+				}
+
+				SetupSplit(factory);
 			}
 		}
 
 		[Test]
-		public void SplitState_StateTransitionsLoop_ThrowsException()
+		public void MultipleSplitedStates_InnerEventTrigger_DisableExecuteExitFinal_CompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+				data.ExecuteExit = false;
+				data.Setup = SetupLayer0;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event1);
+
+			_caller.Received(5).OnTransitionCall(0);
+			_caller.Received(3).OnTransitionCall(1);
+			_caller.Received(2).OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.Received(5).InitialOnExitCall(0);
+			_caller.Received(3).StateOnEnterCall(0);
+			_caller.Received(2).StateOnEnterCall(1);
+			_caller.Received(3).StateOnExitCall(0);
+			_caller.Received(2).StateOnExitCall(1);
+			_caller.Received(5).FinalOnEnterCall(0);
+
+			void SetupLayer0(IStateFactory factory)
+			{
+				for (int i = 0; i < _nestedStateData.Length; i++)
+				{
+					var data = _nestedStateData[i];
+
+					data.ExecuteFinal = false;
+					data.ExecuteExit = false;
+					data.Setup = SetupNestedFlow;
+
+					_nestedStateData[i] = data;
+				}
+
+				SetupSplit(factory);
+			}
+		}
+
+		[Test]
+		public void MultipleSplitedStates_EventTrigger_ForceCompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.Setup = SetupLayer0;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(5).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(5).InitialOnExitCall(0);
+			_caller.Received(3).StateOnEnterCall(0);
+			_caller.Received(2).StateOnEnterCall(1);
+			_caller.Received(3).StateOnExitCall(0);
+			_caller.Received(2).StateOnExitCall(1);
+			_caller.Received(5).FinalOnEnterCall(0);
+
+			void SetupLayer0(IStateFactory factory)
+			{
+				for (int i = 0; i < _nestedStateData.Length; i++)
+				{
+					var data = _nestedStateData[i];
+
+					data.Setup = SetupNestedFlow;
+
+					_nestedStateData[i] = data;
+				}
+
+				SetupSplit(factory);
+			}
+		}
+
+		[Test]
+		public void MultipleSplitedStates_EventTrigger__DisableExecuteExitFinal_ForceCompleteSuccess()
+		{
+			for (int i = 0; i < _nestedStateData.Length; i++)
+			{
+				var data = _nestedStateData[i];
+
+				data.ExecuteFinal = false;
+				data.ExecuteExit = false;
+				data.Setup = SetupLayer0;
+
+				_nestedStateData[i] = data;
+			}
+
+			var statechart = new Statechart(SetupSplit);
+
+			statechart.Run();
+			statechart.Trigger(_event2);
+
+			_caller.Received(5).OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received(1).OnTransitionCall(3);
+			_caller.Received(5).InitialOnExitCall(0);
+			_caller.Received(3).StateOnEnterCall(0);
+			_caller.Received(2).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(1).FinalOnEnterCall(0);
+
+			void SetupLayer0(IStateFactory factory)
+			{
+				for (int i = 0; i < _nestedStateData.Length; i++)
+				{
+					var data = _nestedStateData[i];
+
+					data.ExecuteFinal = false;
+					data.ExecuteExit = false;
+					data.Setup = SetupNestedFlow;
+
+					_nestedStateData[i] = data;
+				}
+
+				SetupSplit(factory);
+			}
+		}
+
+		[Test]
+		public void SplitState_MissingConfiguration_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial = factory.Initial("Initial");
-				var split = factory.Split("Nest");
+				var split = factory.Split("Split");
+				var final = SetupSimpleFlow(factory, split);
+			}));
+		}
 
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(split);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
+		[Test]
+		public void SplitState_SingleConfiguration_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var split = factory.Split("Split");
+				var final = SetupSimpleFlow(factory, split);
 
-				split.OnEnter(() => _caller.StateOnEnterCall(1));
-				split.Split(SetupSimpleEventState, SetupSimpleEventState).OnTransition(() => _caller.OnTransitionCall(4)).Target(split);
-				split.Event(_event2).OnTransition(() => _caller.OnTransitionCall(5)).Target(split);
-				split.OnExit(() => _caller.StateOnExitCall(1));
+				split.Split(SetupNestedFlow).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
+			}));
+		}
+
+		[Test]
+		public void SplitState_TransitionsLoop_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var split = factory.Split("Split");
+				var final = SetupSimpleFlow(factory, split);
+
+				split.Split(_nestedStateData).OnTransition(() => _caller.OnTransitionCall(2)).Target(split);
 			}));
 		}
 
 		#region Setups
-		
-		private void SetupSimple(IStateFactory factory)
+
+		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)
 		{
 			var initial = factory.Initial("Initial");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(final);
-			initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
-		}
-
-		private void SetupSimpleEventState(IStateFactory factory)
-		{
-			var initial = factory.Initial("Initial");
-			var state = factory.State("State");
 			var final = factory.Final("final");
 
 			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
 
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+
+			return final;
+		}
+
+		private void SetupSplit(IStateFactory factory)
+		{
+			var split = factory.Split("Split");
+			var final = SetupSimpleFlow(factory, split);
+
+			split.OnEnter(() => _caller.StateOnEnterCall(1));
+			split.Split(_nestedStateData).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
+			split.Event(_event2).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			split.OnExit(() => _caller.StateOnExitCall(1));
+		}
+
+		private void SetupNestedFlow(IStateFactory factory)
+		{
+			var state = factory.State("State");
+			var final = SetupSimpleFlow(factory, state);
+
 			state.OnEnter(() => _caller.StateOnEnterCall(0));
 			state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			state.OnExit(() => _caller.StateOnExitCall(0));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
-		}
-
-		private void SetupSplit(IStateFactory factory, IStatechartEvent eventTrigger, params NestedStateData[] data)
-		{
-			var initial = factory.Initial("Initial");
-			var split = factory.Split("Split");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(2)).Target(split);
-			initial.OnExit(() => _caller.InitialOnExitCall(1));
-
-			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(data).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
-			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4)).Target(final);
-			split.OnExit(() => _caller.StateOnExitCall(1));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(1));
-		}
-
-		private void SetupSplit_WithoutTarget(IStateFactory factory, IStatechartEvent eventTrigger, params Action<IStateFactory>[] setups)
-		{
-			var initial = factory.Initial("Initial");
-			var split = factory.Split("Split");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(2)).Target(split);
-			initial.OnExit(() => _caller.InitialOnExitCall(1));
-
-			split.OnEnter(() => _caller.StateOnEnterCall(1));
-			split.Split(setups).OnTransition(() => _caller.OnTransitionCall(3));
-			split.Event(eventTrigger).OnTransition(() => _caller.OnTransitionCall(4));
-			split.OnExit(() => _caller.StateOnExitCall(1));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(1));
 		}
 
 		#endregion

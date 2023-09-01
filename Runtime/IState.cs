@@ -130,13 +130,19 @@ namespace GameLovers.StatechartMachine
 	/// <summary>
 	/// A wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
 	/// It waits for the completion of defined activities or for an event to be triggered to resume the state chart execution.
+	/// In case of concurrancy it will first execute <see cref="WaitingFor(Action{IWaitActivity})"/> call before
+	/// checking for this state's <see cref="IStateEvent.Event(IStatechartEvent)"/> behavior.
+	/// In case of an exit from a parent <see cref="INestState"/> or <see cref="ISplitState"/> and this being the current active state, 
+	/// then this state will force complete it's execution and all inner activities to avoid concurrancy bottlenecks.
 	/// </summary>
 	public interface IWaitState : IStateEnter, IStateExit, IStateEvent
 	{
 		/// <summary>
 		/// Blocks the state behaviour until the given <paramref name="waitAction"/> and it's possible child activities,
 		/// are completed.
-		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked
+		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked.
+		/// In case of concurrancy it will first do this call beforechecking for this 
+		/// state's <see cref="IStateEvent.Event(IStatechartEvent)"/> behavior
 		/// </summary>
 		ITransition WaitingFor(Action<IWaitActivity> waitAction);
 	}
@@ -144,8 +150,11 @@ namespace GameLovers.StatechartMachine
 	/// <summary>
 	/// A task wait state is a blocking state that holds the <see cref="IStatechart"/> behavior.
 	/// It waits for the completion of async defined <see cref="Task"/> to be completed to resume the state chart execution.
+	/// To avoid concurrancy during a thread task, this state cannot execute any <see cref="IStateEvent.Event(IStatechartEvent)"/>.
+	/// In case of an exit from a parent <see cref="INestState"/> or <see cref="ISplitState"/> and this being the current active state, 
+	/// then this state will pause the exit and queue all the events holded during the Wait proccess in order to avoid concurrancy bottlenecks
 	/// </summary>
-	public interface ITaskWaitState : IStateEnter, IStateExit, IStateEvent
+	public interface ITaskWaitState : IStateEnter, IStateExit
 	{
 		/// <summary>
 		/// Blocks the state behaviour until the given async <paramref name="taskAwaitAction"/> is completed.

@@ -16,9 +16,9 @@ namespace GameLovers.StatechartMachine.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
-			if (_innerStates.Count != 1)
+			if (_innerStatesData.Count != 1)
 			{
-				throw new MissingMemberException($"This state {Name} doesn't have any nested setup defined.");
+				throw new InvalidOperationException($"This state {Name} doesn't have any nested setup defined.");
 			}
 #endif
 			OnValidate();

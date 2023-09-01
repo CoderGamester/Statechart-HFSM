@@ -10,18 +10,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 	[TestFixture]
 	public class StatechartChoiceTest
 	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-
 		private IMockCaller _caller;
 		private bool _condition1;
 		private bool _condition2;
@@ -34,7 +22,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup()
+		public void SimpleTest()
 		{
 			var statechart = new Statechart(SetupChoiceState);
 
@@ -54,13 +42,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup_WithoutTarget_ThrowsException()
-		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(SetupChoiceState_WithoutTarget));
-		}
-
-		[Test]
-		public void MultipleTrueConditions_PicksFirstTransition()
+		public void ChoiceState_MultipleTrueConditions_PicksFirstTransition()
 		{
 			var statechart = new Statechart(SetupChoiceState);
 
@@ -83,15 +65,60 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		public void ChoiceState_MissingTransitions_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var choice = factory.Choice("Choice");
+				var final = SetupSimpleFlow(factory, choice);
+			}));
+		}
+
+		[Test]
+		public void ChoiceState_MissingConditionTransition_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var choice = factory.Choice("Choice");
+				var final = SetupSimpleFlow(factory, choice);
+
+				choice.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+			}));
+		}
+
+		[Test]
+		public void ChoiceState_OnlyConditionTransition_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var choice = factory.Choice("Choice");
+				var final = SetupSimpleFlow(factory, choice);
+
+				choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+			}));
+		}
+
+		[Test]
+		public void ChoiceState_WithoutTarget_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var choice = factory.Choice("Choice");
+				var final = SetupSimpleFlow(factory, choice);
+
+				choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1));
+				choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2));
+				choice.Transition().OnTransition(() => _caller.OnTransitionCall(3));
+			}));
+		}
+
+		[Test]
 		public void StateTransitionsLoop_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial = factory.Initial("Initial");
 				var choice = factory.Choice("Choice");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(choice);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
+				var final = SetupSimpleFlow(factory, choice);
 
 				choice.OnEnter(() => _caller.StateOnEnterCall(1));
 				choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1)).Target(choice);
@@ -101,61 +128,29 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			}));
 		}
 
-		[Test]
-		public void MissingTransition_ThrowsException()
+		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)
 		{
-			Assert.Throws<MissingMethodException>(() => new Statechart(factory =>
-			{
-				var initial = factory.Initial("Initial");
-				var choice = factory.Choice("Choice");
-				var final = factory.Final("final");
+			var initial = factory.Initial("Initial");
+			var final = factory.Final("final");
 
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(choice);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
+			initial.OnExit(() => _caller.InitialOnExitCall(0));
 
-				choice.OnEnter(() => _caller.StateOnEnterCall(1));
-				choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
-				choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
-				choice.OnExit(() => _caller.StateOnExitCall(1));
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
-			}));
+			return final;
 		}
 
 		private void SetupChoiceState(IStateFactory factory)
 		{
-			var initial = factory.Initial("Initial");
 			var choice = factory.Choice("Choice");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(choice);
-			initial.OnExit(() => _caller.InitialOnExitCall(0));
+			var final = SetupSimpleFlow(factory, choice);
 
 			choice.OnEnter(() => _caller.StateOnEnterCall(1));
 			choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
 			choice.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
 			choice.OnExit(() => _caller.StateOnExitCall(1));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
-		}
-
-		private void SetupChoiceState_WithoutTarget(IStateFactory factory)
-		{
-			var initial = factory.Initial("Initial");
-			var choice = factory.Choice("Choice");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(choice);
-			initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-			choice.OnEnter(() => _caller.StateOnEnterCall(1));
-			choice.Transition().Condition(() => _condition1).OnTransition(() => _caller.OnTransitionCall(1));
-			choice.Transition().Condition(() => _condition2).OnTransition(() => _caller.OnTransitionCall(2));
-			choice.Transition().OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
-			choice.OnExit(() => _caller.StateOnExitCall(1));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 	}
 }

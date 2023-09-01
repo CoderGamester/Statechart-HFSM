@@ -11,8 +11,9 @@ namespace GameLovers.StatechartMachine.Internal
 		protected readonly IList<Action> _onEnter = new List<Action>();
 		protected readonly IList<Action> _onExit = new List<Action>();
 		protected readonly IDictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
-		protected readonly IList<InnerStateData> _innerStates = new List<InnerStateData>();
-		
+		protected readonly IList<InnerStateData> _innerStatesData = new List<InnerStateData>();
+
+		private bool _isPaused;
 		private ITransitionInternal _transition;
 
 		public SplitState(string name, IStateFactoryInternal factory) : base(name, factory)
@@ -22,13 +23,15 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public override void Enter()
 		{
-			for (var i = 0; i < _innerStates.Count; i++)
+			_isPaused = false;
+
+			for (var i = 0; i < _innerStatesData.Count; i++)
 			{
-				var innerState = _innerStates[i];
+				var innerState = _innerStatesData[i];
 
 				innerState.CurrenState = innerState.InitialState;
 
-				_innerStates[i] = innerState;
+				_innerStatesData[i] = innerState;
 			}
 
 			foreach (var action in _onEnter)
@@ -40,9 +43,11 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			for (var i = 0; i < _innerStates.Count; i++)
+			_isPaused = false;
+
+			for (var i = 0; i < _innerStatesData.Count; i++)
 			{
-				var innerState = _innerStates[i];
+				var innerState = _innerStatesData[i];
 
 				if (innerState.ExecuteExit)
 				{
@@ -65,9 +70,9 @@ namespace GameLovers.StatechartMachine.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
-			if (_innerStates.Count < 2)
+			if (_innerStatesData.Count < 2)
 			{
-				throw new MissingMemberException($"Split state {Name} doesn't have enough nested setup defined." +
+				throw new InvalidOperationException($"Split state {Name} doesn't have enough nested setup defined." +
 				                                 $"It needs min 2 nested states to be a proper {nameof(ISplitState)}");
 			}
 #endif
@@ -77,19 +82,16 @@ namespace GameLovers.StatechartMachine.Internal
 		protected void OnValidate()
 		{
 #if UNITY_EDITOR || DEBUG
-			if (_innerStates.Count == 0)
+			if (_innerStatesData.Count == 0)
 			{
-				throw new MissingMemberException($"This state {Name} doesn't have the nested setup defined correctly");
+				throw new InvalidOperationException($"This state {Name} doesn't have the nested setup defined correctly");
 			}
 			
-			for (var i = 0; i < _innerStates.Count; i++)
+			for (var i = 0; i < _innerStatesData.Count; i++)
 			{
-				var innerState = _innerStates[i];
-
-				if (innerState.ExecuteExit && innerState.NestedFactory == null)
+				foreach(var state in _innerStatesData[i].NestedFactory.States)
 				{
-					throw new MissingMemberException($"This state {Name} doesn't have a final state in his first nested " +
-					                                 $"setup and is marked to execute it's {nameof(IFinalState.OnEnter)} when completed");
+					state.Validate();
 				}
 			}
 
@@ -173,7 +175,7 @@ namespace GameLovers.StatechartMachine.Internal
 				stateData.Setup(factory);
 				
 				_stateFactory.Add(factory.States);
-				_innerStates.Add(new InnerStateData
+				_innerStatesData.Add(new InnerStateData
 				{
 					InitialState = factory.InitialState,
 					CurrenState = null,
@@ -191,42 +193,119 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
+			if(_isPaused && !IsAllCompleted())
+			{
+				return null;
+			}
+
+			var isUnpausing = _isPaused;
+			_isPaused = false;
+
 			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
-				return transition;
+				// Delay the completion of this state while some tasks are running
+				return !isUnpausing && DelayForceComplete(statechartEvent) ? null : transition;
 			}
-			
-			for (var i = 0; i < _innerStates.Count; i++)
+
+			return ProcessInnerStates(statechartEvent, isUnpausing);
+		}
+
+		/// <summary>
+		/// This call allows to delay the comletion of this state for when any awatable tasks block it's completiong.
+		/// In the meantime will forcely complete any <see cref="WaitState"/> or queue <see cref="IStatechartEvent"/>
+		/// for any <see cref="TaskWaitState"/> are running to be completed.
+		/// It will pause this state until all the tasks are completed
+		/// This method takes care of nested states in order to avoid miss connection with it's setup.
+		/// Returns true if the state is paused for the completion of inner <see cref="TaskWaitState"/>
+		/// </summary>
+		internal bool DelayForceComplete(IStatechartEvent statechartEvent)
+		{
+			_isPaused = false;
+
+			for (var i = 0; i < _innerStatesData.Count; i++)
 			{
-				var innerState = _innerStates[i];
-				var nextState = innerState.CurrenState.Trigger(statechartEvent);
-				
-				while (nextState != null)
-				{
-					innerState.CurrenState = nextState;
-					nextState = innerState.CurrenState.Trigger(null);
-				}
+				var currenState = _innerStatesData[i].CurrenState;
 
-				_innerStates[i] = innerState;
+				if(currenState is WaitState waitState)
+				{
+					waitState.ForceComplete();
+				}
+				else if(currenState is TaskWaitState taskState && !taskState.Completed)
+				{
+					_isPaused = true;
+
+					taskState.EnqueuEvent(statechartEvent);
+				}
+				else if(currenState is SplitState splitState)
+				{
+					_isPaused = _isPaused || splitState.DelayForceComplete(statechartEvent);
+				}
 			}
 
-			var areAllFinished = true;
-			for (var i = 0; i < _innerStates.Count; i++)
+			return _isPaused;
+		}
+		
+		/// <summary>
+		/// Checks if all inner states on hold are already completed
+		/// </summary>
+		internal bool IsAllCompleted()
+		{
+			for (var i = 0; i < _innerStatesData.Count; i++)
 			{
-				var currenState = _innerStates[i].CurrenState;
+				var currenState = _innerStatesData[i].CurrenState;
 
-				if (currenState is LeaveState leaveState)
+				if (currenState is TaskWaitState taskState && !taskState.Completed)
 				{
-					return leaveState.LeaveTransition;
+					return false;
 				}
-				
-				if(currenState is not FinalState)
+				else if (currenState is SplitState splitState && !splitState.IsAllCompleted())
 				{
-					areAllFinished = false;
+					return false;
 				}
 			}
 
-			return areAllFinished ? _transition : null;
+			return true;
+		}
+
+		private ITransitionInternal ProcessInnerStates(IStatechartEvent statechartEvent, bool isUnpausing)
+		{
+			var nextTransition = _transition;
+			var leaveState = (LeaveState) null;
+
+			for (var i = 0; i < _innerStatesData.Count; i++)
+			{
+				var innerState = _innerStatesData[i];
+
+				if(!isUnpausing)
+				{
+					var nextState = innerState.CurrenState.Trigger(statechartEvent);
+
+					while (nextState != null)
+					{
+						innerState.CurrenState = nextState;
+						nextState = innerState.CurrenState.Trigger(null);
+					}
+				}
+
+				if (innerState.CurrenState is not FinalState)
+				{
+					nextTransition = null;
+				}
+				else if (innerState.CurrenState is LeaveState state)
+				{
+					leaveState = state;
+				}
+
+				_innerStatesData[i] = innerState;
+			}
+
+			if(leaveState != null)
+			{
+				// Delay the completion of this state while some tasks are running
+				nextTransition = !isUnpausing && DelayForceComplete(null) ? null : leaveState.LeaveTransition;
+			}
+
+			return nextTransition;
 		}
 	}
 }

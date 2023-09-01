@@ -39,17 +39,22 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 #if UNITY_EDITOR || DEBUG
 			var noTransitionConditionCount = 0;
+			var hasTransitionWithCondition = false;
 
 			for(var i = 0; i < _transitions.Count; i++)
 			{
-				if (!_transitions[i].HasCondition)
+				if (_transitions[i].HasCondition)
+				{
+					hasTransitionWithCondition = true;
+				}
+				else
 				{
 					noTransitionConditionCount++;
 				}
 
 				if (_transitions[i].TargetState == null)
 				{
-					throw new MissingMemberException($"The state {Name} transition {i.ToString()} is not pointing to any state");
+					throw new InvalidOperationException($"The state {Name} transition {i.ToString()} is not pointing to any state");
 				}
 
 				if (_transitions[i].TargetState.Id == Id)
@@ -58,9 +63,15 @@ namespace GameLovers.StatechartMachine.Internal
 				}
 			}
 
+			if (!hasTransitionWithCondition)
+			{
+				throw new InvalidOperationException(	$"Choice state {Name} does not have a transition with a condition, " +
+													$"use {nameof(TransitionState)} instead if that is intended");
+			}
+
 			if (noTransitionConditionCount == 0)
 			{
-				throw new MissingMethodException($"Choice state {Name} does not have a transition without a condition");
+				throw new InvalidOperationException($"Choice state {Name} does not have a transition without a condition");
 			}
 
 			if (noTransitionConditionCount > 1)

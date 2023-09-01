@@ -5,6 +5,13 @@ using System.Collections.Generic;
 
 namespace GameLovers.StatechartMachine.Internal
 {
+	internal struct StateFactoryData
+	{
+		// TODO: Check if Action fields inside structs is a problem
+		public Action<IStatechartEvent> StateChartMoveNextCall;
+		public IStatechart Statechart;
+	}
+
 	/// <inheritdoc />
 	internal interface IStateFactoryInternal : IStateFactory
 	{

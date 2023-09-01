@@ -9,19 +9,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 {
 	[TestFixture]
 	public class StatechartLeaveTest
-	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-		
+	{		
 		private readonly IStatechartEvent _event1 = new StatechartEvent("Event1");
 		private readonly IStatechartEvent _event2 = new StatechartEvent("Event2");
 

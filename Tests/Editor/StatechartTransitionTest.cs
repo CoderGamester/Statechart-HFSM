@@ -10,18 +10,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 	[TestFixture]
 	public class StatechartTransitionTest
 	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-
 		private IMockCaller _caller;
 		
 		[SetUp]
@@ -31,9 +19,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup()
+		public void SimpleTest()
 		{
-			var statechart = new Statechart(SetupSimple);
+			var statechart = new Statechart(SetupTransitionFlow);
 
 			statechart.Run();
 
@@ -46,78 +34,62 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup_TransitionWithoutTarget_ThrowsException()
-		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
-			{
-				var initial = factory.Initial("Initial");
-				var final = factory.Final("final");
-				var transition = factory.Transition("Transition");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-			
-				transition.OnEnter(() => _caller.StateOnEnterCall(0));
-				transition.Transition().OnTransition(() => _caller.OnTransitionCall(1));
-				transition.OnExit(() => _caller.StateOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
-			}));
-		}
-
-		[Test]
-		public void BasicSetup_TransitionWithoutTransition_ThrowsException()
-		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
-			{
-				var initial = factory.Initial("Initial");
-				var final = factory.Final("final");
-				var transition = factory.Transition("Transition");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-			
-				transition.OnEnter(() => _caller.StateOnEnterCall(0));
-				transition.OnExit(() => _caller.StateOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
-			}));
-		}
-
-		[Test]
-		public void StateTransitionsLoop_ThrowsException()
+		public void TransitionState_TransitionWithoutTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial = factory.Initial("Initial");
-				var final = factory.Final("final");
 				var transition = factory.Transition("Transition");
+				var final = SetupSimpleFlow(factory, transition);
 
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(transition);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-			
+				transition.Transition().OnTransition(() => _caller.OnTransitionCall(1));
+			}));
+		}
+
+		[Test]
+		public void TransitionState_TransitionWithoutTransition_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var transition = factory.Transition("Transition");
+				var final = SetupSimpleFlow(factory, transition);
+			}));
+		}
+
+		[Test]
+		public void TransitionState_TransitionsLoop_ThrowsException()
+		{
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
+			{
+				var transition = factory.Transition("Transition");
+				var final = SetupSimpleFlow(factory, transition);
+
 				transition.OnEnter(() => _caller.StateOnEnterCall(0));
 				transition.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(transition);
 				transition.OnExit(() => _caller.StateOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
-		
-		private void SetupSimple(IStateFactory factory)
+
+		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)
 		{
 			var initial = factory.Initial("Initial");
 			var final = factory.Final("final");
-			var transition = factory.Transition("Transition");
 
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(transition);
+			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
-			
+
+			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+
+			return final;
+		}
+
+		private void SetupTransitionFlow(IStateFactory factory)
+		{
+			var transition = factory.Transition("Transition");
+			var final = SetupSimpleFlow(factory, transition);
+
 			transition.OnEnter(() => _caller.StateOnEnterCall(0));
 			transition.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			transition.OnExit(() => _caller.StateOnExitCall(0));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 	}
 }

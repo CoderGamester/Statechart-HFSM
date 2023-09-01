@@ -10,6 +10,10 @@ namespace GameLovers.StatechartMachine
 	public interface IWaitActivity
 	{
 		/// <summary>
+		/// The unique value id that defines this awaitable <see cref="IWaitActivity"/>
+		/// </summary>
+		uint Id { get; }
+		/// <summary>
 		/// Marks the <see cref="IWaitState"/> as completed to continue the state's execution process.
 		/// Returns true if all it's inner activities are also completed, false otherwise.
 		/// </summary>
