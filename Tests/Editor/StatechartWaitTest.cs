@@ -14,7 +14,8 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		private readonly IStatechartEvent _event = new StatechartEvent("Event");
 
 		private IMockCaller _caller;
-		
+		private IWaitActivity activity;
+
 		[SetUp]
 		public void Init()
 		{
@@ -24,8 +25,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		public async Task SimpleTest()
 		{
-			IWaitActivity activity = null;
-
 			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();
@@ -50,7 +49,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		public async Task SplitActivity_CompleteBoth_Success()
 		{
-			IWaitActivity activity = null;
 			IWaitActivity activitySplit = null;
 
 			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
@@ -85,8 +83,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		public async Task SplitActivity_CompleteOnlyOneActivity_OnHold()
 		{
-			IWaitActivity activity = null;
-
 			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => activity = waitActivity));
 
 			statechart.Run();

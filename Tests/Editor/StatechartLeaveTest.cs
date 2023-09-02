@@ -59,6 +59,37 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		public void SplitState_OnlyLeaveInnerStates_LeaveFirstState()
+		{
+			var statechart = new Statechart(factory =>
+			{
+				var split = factory.Split("Split");
+				var final = SetupSimpleFlow(factory, split);
+				var nestedStateData = _nestedStateData = new NestedStateData(factory => SetupLeave(factory, final));
+
+				split.OnEnter(() => _caller.StateOnEnterCall(1));
+				split.Split(_nestedStateData, nestedStateData).OnTransition(() => _caller.OnTransitionCall(2)).Target(final);
+				split.Event(_event).OnTransition(() => _caller.OnTransitionCall(3)).Target(final);
+				split.OnExit(() => _caller.StateOnExitCall(1));
+			});
+
+			statechart.Run();
+			statechart.Trigger(_event);
+
+			_caller.Received(3).OnTransitionCall(0);
+			_caller.Received(1).OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.DidNotReceive().OnTransitionCall(3);
+			_caller.DidNotReceive().OnTransitionCall(4);
+			_caller.Received(3).InitialOnExitCall(0);
+			_caller.Received(2).StateOnEnterCall(0);
+			_caller.Received(1).StateOnEnterCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.Received(1).StateOnExitCall(1);
+			_caller.Received(1).FinalOnEnterCall(0);
+		}
+
+		[Test]
 		public void LeaveState_MissingConfiguration_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
