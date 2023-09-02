@@ -10,18 +10,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 	[TestFixture]
 	public class StatechartTest
 	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-
 		private IMockCaller _caller;
 		
 		[SetUp]
@@ -31,9 +19,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup()
+		public void SimpleTest()
 		{
-			var statechart = new Statechart(SetupSimple);
+			var statechart = new Statechart(SetupSimpleFlow);
 
 			statechart.Run();
 
@@ -43,7 +31,17 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup_TransitionWithoutTarget_ThrowsException()
+		public void InitialState_MissingTransition_ThrowsException()
+		{
+			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			{
+				var initial = factory.Initial("Initial");
+				var final = factory.Final("final");
+			}));
+		}
+
+		[Test]
+		public void InitialState_TransitionWithoutTarget_ThrowsException()
 		{
 			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
@@ -51,9 +49,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 				var final = factory.Final("final");
 
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0));
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
@@ -63,6 +58,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
+				var final = factory.Final("Final");
 
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(initial);
 			}));
@@ -78,9 +74,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(final);
 				initial.Transition().OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
@@ -90,8 +83,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
 			{
 				var final = factory.Final("final");
-
-				final.OnEnter(() => _caller.FinalOnEnterCall(0));
 			}));
 		}
 
@@ -100,11 +91,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial1 = factory.Initial("Initial1");
-				var initial2 = factory.Initial("Initial2");
+				SetupSimpleFlow(factory);
 
-				initial1.OnExit(() => _caller.InitialOnExitCall(1));
-				initial2.OnExit(() => _caller.InitialOnExitCall(2));
+				var initial1 = factory.Initial("Initial1");
 			}));
 		}
 
@@ -113,18 +102,13 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial = factory.Initial("Initial");
-				var final1 = factory.Final("final1");
+				SetupSimpleFlow(factory);
+
 				var final2 = factory.Final("final2");
-
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
-
-				final1.OnEnter(() => _caller.FinalOnEnterCall(1));
-				final2.OnEnter(() => _caller.FinalOnEnterCall(2));
 			}));
 		}
 		
-		private void SetupSimple(IStateFactory factory)
+		private void SetupSimpleFlow(IStateFactory factory)
 		{
 			var initial = factory.Initial("Initial");
 			var final = factory.Final("final");

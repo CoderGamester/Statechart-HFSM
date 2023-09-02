@@ -37,7 +37,7 @@ namespace GameLovers.StatechartMachine.Internal
 #if UNITY_EDITOR || DEBUG
 			if(LeaveTransition?.TargetState == null)
 			{
-				throw new MissingMemberException($"The leave state {Name} is not pointing to any state");
+				throw new InvalidOperationException($"The leave state {Name} is not pointing to any state");
 			}
 			
 			if(LeaveTransition.TargetState.RegionLayer != RegionLayer - 1)

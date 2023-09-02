@@ -60,11 +60,6 @@ namespace GameLovers.StatechartMachine
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
 
-#if DEVELOPMENT_BUILD
-		public Stopwatch StateWatch = new ();
-		public static Action<string, long> OnStateTimed;
-#endif
-
 #if UNITY_EDITOR
 		public string CurrentState => _currentState.Name;
 #endif
@@ -125,36 +120,13 @@ namespace GameLovers.StatechartMachine
 			_currentState = _stateFactory.InitialState;
 		}
 
-#if DEVELOPMENT_BUILD
-		private void MeasureTime()
-		{
-			if (StateWatch.IsRunning)
-			{
-				StateWatch.Stop();
-				OnStateTimed?.Invoke(_currentState.Name, StateWatch.ElapsedMilliseconds);
-				StateWatch.Reset();
-			}
-		}
-#endif
-
 		private void MoveNext(IStatechartEvent trigger)
 		{
-#if DEVELOPMENT_BUILD
-			if (StateWatch.IsRunning && _currentState != null)
-			{
-				MeasureTime();
-			}
-#endif
 			var nextState = _currentState.Trigger(trigger);
 			while (nextState != null)
 			{
-#if DEVELOPMENT_BUILD
-				StateWatch.Start();
-#endif
 				_currentState = nextState;
 				nextState = _currentState.Trigger(null);
-				
-				
 			}
 		}
 	}

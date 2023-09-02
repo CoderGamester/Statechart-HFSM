@@ -40,7 +40,7 @@ namespace GameLovers.StatechartMachine.Internal
 #if UNITY_EDITOR || DEBUG
 			if (_transition?.TargetState == null)
 			{
-				throw new MissingMemberException($"Transition state {Name} doesn't have a transition defined, so nothing will happen");
+				throw new InvalidOperationException($"Transition state {Name} doesn't have a transition defined, so nothing will happen");
 			}
 
 			if (_transition.TargetState.Id == Id)

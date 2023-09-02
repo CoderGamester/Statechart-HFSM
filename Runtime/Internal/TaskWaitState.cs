@@ -12,28 +12,39 @@ namespace GameLovers.StatechartMachine.Internal
 	{
 		private ITransitionInternal _transition;
 		private Func<Task> _taskAwaitAction;
+		private IStatechartEvent _eventQueued;
 		private bool _triggered;
-		private bool _completed;
-		private uint _executionCount;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
-		private readonly Dictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
+
+		/// <summary>
+		/// Requests the completion state of this task await state
+		/// </summary>
+		public bool Completed { get; private set; }
 
 		public TaskWaitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
 			_triggered = false;
-			_completed = false;
-			_executionCount = 0;
+			Completed = false;
+		}
+
+		/// <summary>
+		/// If this task is still being executed, then queue the first command to be executed after the task is completed
+		/// </summary>
+		public void EnqueuEvent(IStatechartEvent statechartEvent)
+		{
+			_eventQueued ??= statechartEvent;
 		}
 
 		/// <inheritdoc />
 		public override void Enter()
 		{
+			_eventQueued = null;
 			_triggered = false;
-			_completed = false;
-			
-			for(int i = 0; i < _onEnter.Count; i++)
+			Completed = false;
+
+			for (int i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
 			}
@@ -42,7 +53,7 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			_completed = true;
+			Completed = true;
 			
 			for(int i = 0; i < _onExit.Count; i++)
 			{
@@ -56,7 +67,12 @@ namespace GameLovers.StatechartMachine.Internal
 #if UNITY_EDITOR || DEBUG
 			if (_taskAwaitAction == null)
 			{
-				throw new MissingMethodException($"The state {Name} doesn't have a task await action");
+				throw new InvalidOperationException($"The state {Name} doesn't have a task await action");
+			}
+
+			if (_transition?.TargetState == null)
+			{
+				throw new InvalidOperationException($"The state {Name} is not pointing to any state");
 			}
 
 			if (_transition.TargetState?.Id == Id)
@@ -89,21 +105,6 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
-		public ITransition Event(IStatechartEvent statechartEvent)
-		{
-			if (statechartEvent == null)
-			{
-				throw new NullReferenceException($"The state {Name} cannot have a null event");
-			}
-
-			var transition = new Transition();
-
-			_events.Add(statechartEvent, transition);
-
-			return transition;
-		}
-
-		/// <inheritdoc />
 		public ITransition WaitingFor(Func<Task> taskAwaitAction)
 		{
 			_taskAwaitAction = taskAwaitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
@@ -115,26 +116,17 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
-			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
-			{
-				return transition;
-			}
-
 			if (!_triggered)
 			{
 				_triggered = true;
-				InnerTaskAwait(statechartEvent?.Name);
+				_ = InnerTaskAwait(statechartEvent?.Name);
 			}
 
-			return _completed ? _transition : null;
+			return Completed ? _transition : null;
 		}
 
-		private async void InnerTaskAwait(string eventName)
+		private async Task InnerTaskAwait(string eventName)
 		{
-			var currentExecution = _executionCount;
-
-			_executionCount++;
-
 			try
 			{
 				if (IsStateLogsEnabled)
@@ -142,21 +134,17 @@ namespace GameLovers.StatechartMachine.Internal
 					Debug.Log($"TaskWait - '{eventName}' : '{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()' => '{Name}'");
 				}
 
-				await Task.Yield();
+				//await Task.Yield();
 				await _taskAwaitAction();
+
+				Completed = true;
+
+				_stateFactory.Data.StateChartMoveNextCall(_eventQueued);
 			}
 			catch (Exception e)
 			{
 				throw new Exception($"Exception in the state '{Name}', when calling the task wait action " +
 				                    $"'{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()'.\n" + CreationStackTrace, e);
-			}
-
-			// Checks if the state didn't exited from an outsource trigger (Nested State) before the Task was completed
-			if (!_completed && _executionCount - 1 == currentExecution)
-			{
-				_completed = true;
-				
-				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
 		}
 	}

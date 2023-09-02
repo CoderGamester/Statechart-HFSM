@@ -10,21 +10,8 @@ namespace GameLoversEditor.StatechartMachine.Tests
 	[TestFixture]
 	public class StatechartStateTest
 	{
-		/// <summary>
-		/// Mocking interface to check method calls received
-		/// </summary>
-		public interface IMockCaller
-		{
-			void InitialOnExitCall(int id);
-			void FinalOnEnterCall(int id);
-			void StateOnEnterCall(int id);
-			void StateOnExitCall(int id);
-			void OnTransitionCall(int id);
-		}
-
 		private IMockCaller _caller;
-		private readonly IStatechartEvent _event1 = new StatechartEvent("Event1");
-		private readonly IStatechartEvent _event2 = new StatechartEvent("Event2");
+		private readonly IStatechartEvent _event = new StatechartEvent("Event");
 		
 		[SetUp]
 		public void Init()
@@ -33,9 +20,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup()
+		public void SimpleTest()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new Statechart(SetupStateFlow);
 
 			statechart.Run();
 
@@ -46,7 +33,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			statechart.Trigger(_event1);
+			statechart.Trigger(_event);
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.Received().StateOnExitCall(1);
@@ -54,9 +41,17 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void BasicSetup_TransitionWithoutTarget()
+		public void State_TransitionWithoutTarget_Succeeds()
 		{
-			var statechart = new Statechart(SetupEventState_WithoutTarget);
+			var statechart = new Statechart(factory =>
+			{
+				var state = factory.State("State");
+				var final = SetupSimpleFlow(factory, state);
+
+				state.OnEnter(() => _caller.StateOnEnterCall(1));
+				state.Event(_event).OnTransition(() => _caller.OnTransitionCall(1));
+				state.OnExit(() => _caller.StateOnExitCall(1));
+			});
 
 			statechart.Run();
 
@@ -67,7 +62,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			statechart.Trigger(_event1);
+			statechart.Trigger(_event);
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().StateOnExitCall(1);
@@ -75,12 +70,13 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void TriggerNotConfiguredEvent_DoesNothing()
+		public void State_TriggerNotConfiguredEvent_NoEffect()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new Statechart(SetupStateFlow);
+			var event2 = new StatechartEvent("Event2");
 
 			statechart.Run();
-			statechart.Trigger(_event2);
+			statechart.Trigger(event2);
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -94,14 +90,14 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void PauseRunStatechart()
+		public void State_PauseRunStatechart_Success()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new Statechart(SetupStateFlow);
 
 			statechart.Run();
 			statechart.Pause();
 			statechart.Run();
-			statechart.Trigger(_event1);
+			statechart.Trigger(_event);
 
 			_caller.Received().OnTransitionCall(0);
 			_caller.Received().OnTransitionCall(1);
@@ -112,14 +108,14 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		public void ResetRunStatechart()
+		public void State_ResetRunStatechart_Success()
 		{
-			var statechart = new Statechart(SetupEventState);
+			var statechart = new Statechart(SetupStateFlow);
 
 			statechart.Run();
 			statechart.Reset();
 			statechart.Run();
-			statechart.Trigger(_event1);
+			statechart.Trigger(_event);
 
 			_caller.Received(2).OnTransitionCall(0);
 			_caller.Received(1).OnTransitionCall(1);
@@ -134,48 +130,37 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
-				var initial = factory.Initial("Initial");
 				var state = factory.State("State");
-
-				initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
-				initial.OnExit(() => _caller.InitialOnExitCall(0));
+				
+				SetupSimpleFlow(factory, state);
 
 				state.OnEnter(() => _caller.StateOnEnterCall(1));
-				state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1)).Target(state);
+				state.Event(_event).OnTransition(() => _caller.OnTransitionCall(1)).Target(state);
 				state.OnExit(() => _caller.StateOnExitCall(1));
 			}));
 		}
 
-		private void SetupEventState(IStateFactory factory)
+		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)
 		{
 			var initial = factory.Initial("Initial");
-			var state = factory.State("State");
 			var final = factory.Final("final");
 
 			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
 			initial.OnExit(() => _caller.InitialOnExitCall(0));
 
-			state.OnEnter(() => _caller.StateOnEnterCall(1));
-			state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
-			state.OnExit(() => _caller.StateOnExitCall(1));
-
 			final.OnEnter(() => _caller.FinalOnEnterCall(0));
+
+			return final;
 		}
 
-		private void SetupEventState_WithoutTarget(IStateFactory factory)
+		private void SetupStateFlow(IStateFactory factory)
 		{
-			var initial = factory.Initial("Initial");
 			var state = factory.State("State");
-			var final = factory.Final("final");
-
-			initial.Transition().OnTransition(() => _caller.OnTransitionCall(0)).Target(state);
-			initial.OnExit(() => _caller.InitialOnExitCall(0));
+			var final =	SetupSimpleFlow(factory, state);
 
 			state.OnEnter(() => _caller.StateOnEnterCall(1));
-			state.Event(_event1).OnTransition(() => _caller.OnTransitionCall(1));
+			state.Event(_event).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			state.OnExit(() => _caller.StateOnExitCall(1));
-
-			final.OnEnter(() => _caller.FinalOnEnterCall(0));
 		}
 	}
 }

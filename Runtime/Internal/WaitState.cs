@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using GameLovers.StatechartMachine;
 using UnityEngine;
 
 // ReSharper disable CheckNamespace
@@ -15,7 +13,6 @@ namespace GameLovers.StatechartMachine.Internal
 		private IWaitActivityInternal _waitingActivity;
 		private Action<IWaitActivity> _waitAction;
 		private bool _triggered;
-		private uint _executionCount;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -24,13 +21,22 @@ namespace GameLovers.StatechartMachine.Internal
 		public WaitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
 			_triggered = false;
-			_executionCount = 0;
+		}
+
+		/// <summary>
+		/// Forces this state to complete, bypassing the normal flow of exeuction. 
+		/// This is helpful if a parent nested state is controling this state
+		/// </summary>
+		public void ForceComplete()
+		{
+			_waitingActivity.ForceComplete();
 		}
 
 		/// <inheritdoc />
 		public override void Enter()
 		{
-			_waitingActivity.Reset();
+			// It needs to create a new activity everytime on to make sure old activities don't override new ones
+			_waitingActivity = new WaitActivity(OnActivityComplete);
 			_triggered = false;
 
 			for(int i = 0; i < _onEnter.Count; i++)
@@ -52,9 +58,14 @@ namespace GameLovers.StatechartMachine.Internal
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG
-			if (_waitingActivity == null)
+			if (_waitAction == null)
 			{
-				throw new MissingMethodException($"The state {Name} doesn't have a waiting activity");
+				throw new InvalidOperationException($"The state {Name} doesn't have a waiting activity");
+			}
+
+			if (_transition?.TargetState == null)
+			{
+				throw new InvalidOperationException($"The state {Name} is not pointing to any state");
 			}
 
 			if (_transition.TargetState?.Id == Id)
@@ -114,10 +125,17 @@ namespace GameLovers.StatechartMachine.Internal
 		public ITransition WaitingFor(Action<IWaitActivity> waitAction)
 		{
 			_waitAction = waitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
-			_waitingActivity = new WaitActivity(_stateFactory.Data.StateChartMoveNextCall);
 			_transition = new Transition();
 
 			return _transition;
+		}
+
+		private void OnActivityComplete(uint id)
+		{
+			if(id == _waitingActivity.Id)
+			{
+				_stateFactory.Data.StateChartMoveNextCall(null);
+			}
 		}
 
 		/// <inheritdoc />
@@ -125,6 +143,11 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
+				if(transition.TargetState != null)
+				{
+					_waitingActivity.ForceComplete();
+				}
+
 				return transition;
 			}
 
@@ -134,14 +157,11 @@ namespace GameLovers.StatechartMachine.Internal
 				InnerWait(statechartEvent?.Name);
 			}
 
-			return _waitingActivity.IsCompleted && _waitingActivity.ExecutionCount == _executionCount - 1 ? _transition : null;
+			return _waitingActivity.IsCompleted ? _transition : null;
 		}
 
 		private void InnerWait(string eventName)
 		{
-			_waitingActivity.ExecutionCount = _executionCount;
-			_executionCount++;
-
 			try
 			{
 				if (IsStateLogsEnabled)
