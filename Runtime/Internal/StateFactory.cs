@@ -5,9 +5,11 @@ using System.Collections.Generic;
 
 namespace GameLovers.StatechartMachine.Internal
 {
+	/// <summary>
+	/// References of the data to be use in the <see cref="IStateFactory"/> to manage the pattern of state creation
+	/// </summary>
 	internal struct StateFactoryData
 	{
-		// TODO: Check if Action fields inside structs is a problem
 		public Action<IStatechartEvent> StateChartMoveNextCall;
 		public IStatechart Statechart;
 	}
