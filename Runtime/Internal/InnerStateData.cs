@@ -2,7 +2,10 @@
 
 namespace GameLovers.StatechartMachine.Internal
 {
-	internal struct InnerStateData
+	/// <summary>
+	/// This data objects contains the basic information about the current states managed by the statechart
+	/// </summary>
+	internal class InnerStateData
 	{
 		public IStateInternal InitialState;
 		public IStateInternal CurrenState;
