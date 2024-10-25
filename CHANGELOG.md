@@ -4,6 +4,31 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2024-10-25
+
+**Fixed**
+- Changed the try/catch exceptions to Debug.LogException with a Debug.LogError, to properly show the issues in the Unity console
+
+## [0.9.1] - 2023-09-04
+
+**Fixed**
+- Added missing documentation to describe the purpose of the *InnerStateData* and *StateFactoryData* classes.
+
+## [0.9.0] - 2023-09-02
+
+- Introduced unique identifiers for *IWaitActivity* instances to differentiate between different activities
+- Enhanced the *TaskWaitState* class with a new event queuing mechanism to handle events after task completion
+- Improved the *SplitState* class to allow pausing/resuming of inner state transitions
+
+**Changed**
+- Updated exception handling across various classes, replacing *MissingMemberException* with *InvalidOperationException* for more appropriate error representation
+
+## [0.8.0] - 2023-08-03
+
+**Changed**
+- Change the main class name from *Statemachine* to *Statechart* Change namespace to avoid conflicts to StatechartMachine
+- Changed both *ISplitState* and *INestedState* to receive a single parameterized *NestedStateData* to make calls less verbose and ready for future scalability
+
 ## [0.7.0] - 2021-05-04
 
 - Improved State documentations

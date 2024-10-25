@@ -39,7 +39,7 @@ namespace GameLovers.StatechartMachine.Internal
 			_waitingActivity = new WaitActivity(OnActivityComplete);
 			_triggered = false;
 
-			for(int i = 0; i < _onEnter.Count; i++)
+			for (int i = 0; i < _onEnter.Count; i++)
 			{
 				_onEnter[i]?.Invoke();
 			}
@@ -48,7 +48,7 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public override void Exit()
 		{
-			for(int i = 0; i < _onExit.Count; i++)
+			for (int i = 0; i < _onExit.Count; i++)
 			{
 				_onExit[i]?.Invoke();
 			}
@@ -132,7 +132,7 @@ namespace GameLovers.StatechartMachine.Internal
 
 		private void OnActivityComplete(uint id)
 		{
-			if(id == _waitingActivity.Id)
+			if (id == _waitingActivity.Id)
 			{
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
@@ -143,7 +143,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
-				if(transition.TargetState != null)
+				if (transition.TargetState != null)
 				{
 					_waitingActivity.ForceComplete();
 				}
@@ -167,14 +167,21 @@ namespace GameLovers.StatechartMachine.Internal
 				if (IsStateLogsEnabled)
 				{
 					Debug.Log($"'{eventName}' event triggers the wait method '{_waitAction.Method.Name}'" +
-					          $"from the object {_waitAction.Target} in the state {Name}");
+							  $"from the object {_waitAction.Target} in the state {Name}");
 				}
 				_waitAction(_waitingActivity);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
-				throw new Exception($"Exception in the state '{Name}', when calling the wait action {_waitAction.Method.Name}" +
-				                    $"from the object {_waitAction.Target}.\n" + CreationStackTrace, e);
+				var finalMessage = "";
+#if UNITY_EDITOR || DEBUG
+				finalMessage = $"\nStackTrace log of '{Name}' state creation bellow.\n{CreationStackTrace}";
+#endif
+
+				Debug.LogError($"Exception in the state '{Name}', when calling the wait action {_waitAction.Method.Name}" +
+					$" from the object {_waitAction.Target}.\n" +
+					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
+				Debug.LogException(e);
 			}
 		}
 	}

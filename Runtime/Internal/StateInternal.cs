@@ -164,7 +164,14 @@ namespace GameLovers.StatechartMachine.Internal
 			}
 			catch (Exception e)
 			{
-				throw new Exception($"Exception in the state {state.Name}, OnEnter() actions.\n" + CreationStackTrace, e);
+				var finalMessage = "";
+#if UNITY_EDITOR || DEBUG
+				finalMessage = $"\nStackTrace log of '{state.Name}' state creation bellow.\n{CreationStackTrace}";
+#endif
+
+				Debug.LogError($"Exception in the state '{state.Name}', OnExit() actions.\n" +
+					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
+				Debug.LogException(e);
 			}
 		}
 
@@ -180,7 +187,14 @@ namespace GameLovers.StatechartMachine.Internal
 			}
 			catch(Exception e)
 			{
-				throw new Exception($"Exception in the state '{Name}', OnExit() actions.\n" + CreationStackTrace, e);
+				var finalMessage = "";
+#if UNITY_EDITOR || DEBUG
+				finalMessage = $"\nStackTrace log of '{Name}' state creation bellow.\n{CreationStackTrace}";
+#endif
+
+				Debug.LogError($"Exception in the state '{Name}', OnExit() actions.\n" +
+					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
+				Debug.LogException(e);
 			}
 		}
 
@@ -199,8 +213,14 @@ namespace GameLovers.StatechartMachine.Internal
 			}
 			catch (Exception e)
 			{
-				throw new Exception($"Exception in the transition '{Name}' -> '{transition.TargetState?.Name}'," +
-				                    $" TriggerTransition() actions.\n{transition.CreationStackTrace}", e);
+				var finalMessage = "";
+#if UNITY_EDITOR || DEBUG
+				finalMessage = $"\nStackTrace log of this transition creation bellow.\n{transition.CreationStackTrace}";
+#endif
+
+				Debug.LogError($"Exception in the transition '{Name}' -> '{transition.TargetState?.Name}'" +
+					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
+				Debug.LogException(e);
 			}
 		}
 	}
