@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2024-11-13
+
+**New**
+- Added new *ITaskWaitState.WaitingFor(Func<UniTask>)* method to allow *TaskWaitStates* to hold on *UniTask* type calls
+
+**Fixed**
+- Added *UniTask* to the package to allow the *Statechart* run on WebGL
+
 ## [0.9.2] - 2024-10-25
 
 **Fixed**
@@ -16,6 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.9.0] - 2023-09-02
 
+**New**
 - Introduced unique identifiers for *IWaitActivity* instances to differentiate between different activities
 - Enhanced the *TaskWaitState* class with a new event queuing mechanism to handle events after task completion
 - Improved the *SplitState* class to allow pausing/resuming of inner state transitions
@@ -31,6 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.7.0] - 2021-05-04
 
+**New**
 - Improved State documentations
 - Improved State debug logs
 
@@ -53,6 +63,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.5.2] - 2020-09-27
 
+**New**
 - Added *IStatechartEvent* data to the logs
 - Added logs to all possible trigger cases
 - Added logs to the *ITaskWaitState* and *IWaitState* waiting call method
@@ -66,6 +77,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.5.0] - 2020-09-24
 
+**New**
 - Added new *ITransitionState* that acts as a non-blocker state between 2 different states
 
 **Changed**
@@ -76,6 +88,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.4.0] - 2020-09-22
 
+**New**
 - Added the possibility to not execute *IStateExit.OnExit* on the current active state when leaving *IStateNest* or *IStateSplit*.
 - Added the new *ITaskWaitState* to have a waiter for Task async methods. This state cannot have event triggers, for that use *IWaitState*
 
@@ -84,10 +97,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.3.0] - 2020-09-06
 
+**New**
 - Added the possibility to trigger events without a target state. Only *InitialState*, *ChoiceState* & *LeaveState* don't allow it due to the nature of their behaviour.
 
 ## [0.2.0] - 2020-08-27
 
+**New**
 - Added the possibility to always execute the *FinalState* of a *NestState* and * *SplitState*
 
 **Changed**
@@ -98,12 +113,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.1.3] - 2020-01-06
 
+**Fixed**
 - Removed package dependency
 
 ## [0.1.2] - 2020-01-06
 
-- Removed Preview label out of the package version
+**New**
 - Added NSubstitute dependency for the Unit Tests
+
+**Fixed**
+- Removed Preview label out of the package version
 
 ## [0.1.0] - 2020-01-05
 
