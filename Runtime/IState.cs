@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Threading.Tasks;
 
@@ -161,6 +162,9 @@ namespace GameLovers.StatechartMachine
 		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked
 		/// </summary>
 		ITransition WaitingFor(Func<Task> taskAwaitAction);
+
+		/// <inheritdoc cref="WaitingFor(Func<Task>)"/>
+		ITransition WaitingFor(Func<UniTask> taskAwaitAction);
 	}
 
 	/// <summary>

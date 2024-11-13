@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace GameLovers.StatechartMachine.Internal
 	internal class TaskWaitState : StateInternal, ITaskWaitState
 	{
 		private ITransitionInternal _transition;
-		private Func<Task> _taskAwaitAction;
+		private Func<UniTask> _taskAwaitAction;
 		private IStatechartEvent _eventQueued;
 		private bool _triggered;
 
@@ -107,12 +108,26 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public ITransition WaitingFor(Func<Task> taskAwaitAction)
 		{
+			if (taskAwaitAction == null)
+			{
+				throw new NullReferenceException($"The state {Name} cannot have a null wait action");
+			}
+
+			_taskAwaitAction = () => taskAwaitAction().AsUniTask();
+			_transition = new Transition();
+
+			return _transition;
+		}
+
+		/// <inheritdoc />
+		public ITransition WaitingFor(Func<UniTask> taskAwaitAction)
+		{
 			_taskAwaitAction = taskAwaitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
 			_transition = new Transition();
 
 			return _transition;
 		}
-		
+
 		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
@@ -125,7 +140,7 @@ namespace GameLovers.StatechartMachine.Internal
 			return Completed ? _transition : null;
 		}
 
-		private async Task InnerTaskAwait(string eventName)
+		private async UniTask InnerTaskAwait(string eventName)
 		{
 			try
 			{

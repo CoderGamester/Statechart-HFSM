@@ -1,10 +1,9 @@
 using System;
-using System.Collections;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
-using UnityEngine.TestTools;
 
 // ReSharper disable CheckNamespace
 
@@ -80,6 +79,33 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		public async Task UniTaskWait_EventTrigger_DoesNothing()
+		{
+			var statechart = new Statechart(SetupUniTaskWaitState);
+
+			statechart.Run();
+
+			_caller.Received().OnTransitionCall(0);
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received().InitialOnExitCall(0);
+			_caller.Received().StateOnEnterCall(0);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
+
+			statechart.Trigger(_event);
+
+			_blocker = false;
+
+			await YieldWaitUniTask();
+
+			_caller.Received().OnTransitionCall(1);
+			_caller.DidNotReceive().OnTransitionCall(2);
+			_caller.Received().StateOnExitCall(0);
+			_caller.Received().FinalOnEnterCall(0);
+		}
+
+		[Test]
 		public void TaskWait_MissingConfiguration_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -122,7 +148,17 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 			_done = true;
 		}
-		
+
+		private async UniTask UniTaskWaitAction()
+		{
+			while (_blocker)
+			{
+				await UniTask.Yield();
+			}
+
+			_done = true;
+		}
+
 		private async Task YieldWaitTask()
 		{
 			while (!_done)
@@ -131,6 +167,16 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			}
 
 			await Task.Yield();
+		}
+
+		private async UniTask YieldWaitUniTask()
+		{
+			while (!_done)
+			{
+				await UniTask.Yield();
+			}
+
+			await UniTask.Yield();
 		}
 
 		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)
@@ -153,6 +199,16 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 			waiting.OnEnter(() => _caller.StateOnEnterCall(0));
 			waiting.WaitingFor(TaskWaitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+			waiting.OnExit(() => _caller.StateOnExitCall(0));
+		}
+
+		private void SetupUniTaskWaitState(IStateFactory factory)
+		{
+			var waiting = factory.TaskWait("Task Wait");
+			var final = SetupSimpleFlow(factory, waiting);
+
+			waiting.OnEnter(() => _caller.StateOnEnterCall(0));
+			waiting.WaitingFor(UniTaskWaitAction).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 			waiting.OnExit(() => _caller.StateOnExitCall(0));
 		}
 	}
