@@ -4,13 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.9.3] - 2024-11-13
+## [0.9.3] - 2026-06-26
 
 **New**
 - Added new *ITaskWaitState.WaitingFor(Func<UniTask>)* method to allow *TaskWaitStates* to hold on *UniTask* type calls
 
 **Fixed**
 - Added *UniTask* to the package to allow the *Statechart* run on WebGL
+- Added guard in *Statechart.MoveNext* to halt chained state transitions when the State Chart is paused
 
 ## [0.9.2] - 2024-10-25
 

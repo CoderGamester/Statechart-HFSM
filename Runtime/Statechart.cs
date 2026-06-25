@@ -18,7 +18,7 @@ namespace GameLovers.StatechartMachine
 
 	/// <summary>
 	/// The main object which represents the State Chart and drives it forward.
-	/// The State Chart schematics are defined in the constructor setup action and cannot be modified during runtime. 
+	/// The State Chart schematics are defined in the constructor setup action and cannot be modified during runtime.
 	/// See <see cref="http://www.omg.org/spec/UML"/> for Semantics.
 	/// </summary>
 	public interface IStatechart : IStateMachineDebug
@@ -28,19 +28,19 @@ namespace GameLovers.StatechartMachine
 		/// Triggers only work if the State Chart is not paused.
 		/// </summary>
 		void Trigger(IStatechartEvent trigger);
-		
+
 		/// <summary>
 		/// Start/Resume the control of the State Chart from where is anchored.
 		/// Does nothing if already running.
 		/// </summary>
 		void Run();
-		
+
 		/// <summary>
 		/// Pauses the control of the State Chart.
 		/// Call <see cref="Run"/> to resume it.
 		/// </summary>
 		void Pause();
-		
+
 		/// <summary>
 		/// Resets the State Chart to it's initial starting point.
 		/// This call doesn't pause or resume the control of the State Chart. If the State Chart is in waiting
@@ -63,7 +63,7 @@ namespace GameLovers.StatechartMachine
 #if UNITY_EDITOR
 		public string CurrentState => _currentState.Name;
 #endif
-		
+
 		private Statechart() {}
 
 		public Statechart(Action<IStateFactory> setup)
@@ -122,6 +122,11 @@ namespace GameLovers.StatechartMachine
 
 		private void MoveNext(IStatechartEvent trigger)
 		{
+			if (!_isRunning)
+			{
+				return;
+			}
+
 			var nextState = _currentState.Trigger(trigger);
 			while (nextState != null)
 			{
