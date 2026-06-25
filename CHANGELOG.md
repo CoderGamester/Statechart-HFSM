@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 **Changed**
 - Removed *openai.yml* GitHub Actions workflow
-- Added *.audit-history.md* to *.gitignore*
 
 ## [0.9.3] - 2024-11-13
 
