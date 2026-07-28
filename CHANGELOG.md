@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.9.5] - 2026-07-29
+
+**New**
+- Added `AGENTS.md` (contributor/agent guide) and `CLAUDE.md` (Claude Code wrapper) — the package previously had neither, only `README.md`.
+
+**Fixed**
+- `README.md` was the unedited Unity "Package Starter Kit" boilerplate template (placeholder package name, references to files that don't exist in this package, generic instructions on *how to build a UPM package* rather than documentation of *this package's actual API*) — replaced with real usage documentation, verified against every file in `Runtime/`.
+
 ## [0.9.4] - 2026-06-26
 
 **Fixed**
