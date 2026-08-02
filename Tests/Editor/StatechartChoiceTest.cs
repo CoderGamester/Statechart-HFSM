@@ -22,6 +22,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.OnTrigger returns the first transition whose CheckCondition() is TRUE, so with
+		// condition1 false and condition2 true the chart takes the second branch, not the first.
+		// RCR: ChoiceState.cs OnTrigger — invert `if (_transitions[i].CheckCondition())` → RED
+		// (OnTransitionCall(1) is received and OnTransitionCall(2) is not).
 		public void SimpleTest()
 		{
 			var statechart = new Statechart(SetupChoiceState);
@@ -42,6 +46,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.OnTrigger scans _transitions in declaration order and returns on the FIRST true
+		// condition, so two simultaneously-true conditions resolve deterministically to the earlier one.
+		// RCR: ChoiceState.cs OnTrigger — reverse the scan to `for (var i = _transitions.Count - 1; i >= 0;
+		// i--)` → RED (the later branch wins). SimpleTest stays green: only one condition is true there.
 		public void ChoiceState_MultipleTrueConditions_PicksFirstTransition()
 		{
 			var statechart = new Statechart(SetupChoiceState);
@@ -65,6 +73,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.Validate rejects a choice state with NO transitions at all.
+		// RCR: no single-line mutation exists — the empty case trips BOTH independent guards
+		// (!hasTransitionWithCondition and noTransitionConditionCount == 0), so disabling either one
+		// leaves the other still throwing. Verified: narrowing the first to `&& _transitions.Count > 0`
+		// left this test green. Double-covered belt-and-braces, not single-line falsifiable.
 		public void ChoiceState_MissingTransitions_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -75,6 +88,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.Validate also rejects a choice state whose only transition carries no condition —
+		// that is a TransitionState, not a choice — via the same !hasTransitionWithCondition guard.
+		// RCR: ChoiceState.cs Validate — narrow the guard to `!hasTransitionWithCondition &&
+		// _transitions.Count == 0` → RED (the one-unconditional-transition case no longer throws). The
+		// sibling ChoiceState_MissingTransitions_ThrowsException stays green under this edit.
 		public void ChoiceState_MissingConditionTransition_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -87,6 +105,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.Validate requires a fallback transition with no condition, so a choice whose
+		// every condition evaluates false still has somewhere to go instead of silently stalling.
+		// RCR: ChoiceState.cs Validate — change `if (noTransitionConditionCount == 0)` to `if (false)` → RED
+		// (no InvalidOperationException).
 		public void ChoiceState_OnlyConditionTransition_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -99,6 +121,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.Validate rejects any transition left without a Target, naming the offending
+		// transition index, rather than deferring to a null dereference at run time.
+		// RCR: ChoiceState.cs Validate — change `if (_transitions[i].TargetState == null)` to `if (false)` →
+		// RED (no InvalidOperationException; validation instead falls through to the next guard).
 		public void ChoiceState_WithoutTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -113,6 +139,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: ChoiceState.Validate rejects a transition targeting its own choice state, which would
+		// re-evaluate the same conditions forever.
+		// RCR: ChoiceState.cs Validate — change `if (_transitions[i].TargetState.Id == Id)` to `if (false)` →
+		// RED (no InvalidOperationException).
 		public void StateTransitionsLoop_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
