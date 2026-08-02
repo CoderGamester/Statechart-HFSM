@@ -27,6 +27,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: TaskWaitState.OnTrigger only returns its transition once the awaited task has set Completed,
+		// so the chart parks in the state for the task's duration instead of falling straight through.
+		// RCR: TaskWaitState.cs OnTrigger — change `return Completed ? _transition : null;` to `return null;`
+		// → RED (the awaited task finishes but the chart never advances).
 		public async Task SimpleTest()
 		{
 			var statechart = new Statechart(SetupTaskWaitState);
@@ -52,6 +56,12 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: TaskWaitState.OnTrigger ignores the incoming event entirely — it never consults an event map,
+		// so a trigger arriving mid-task cannot pre-empt the await (unlike WaitState, which does honour events).
+		// RCR: no single-line mutation found. Making OnTrigger honour the event (returning _transition when
+		// statechartEvent != null) leaves this test green, because the awaited task completes and reaches the
+		// same final state either way — the assertions cannot separate "the event advanced it" from "the task
+		// did". Review candidate: the name claims more than the body checks (D2).
 		public async Task TaskWait_EventTrigger_DoesNothing()
 		{
 			var statechart = new Statechart(SetupTaskWaitState);
@@ -79,6 +89,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: the UniTask overload shares TaskWaitState.OnTrigger with the Task overload, so it ignores
+		// mid-await events for the same reason its sibling above does.
+		// RCR: TaskWaitState.cs OnTrigger — same edit as the Task sibling above; both go RED together, which
+		// is itself the point: the two overloads are not separately guarded.
 		public async Task UniTaskWait_EventTrigger_DoesNothing()
 		{
 			var statechart = new Statechart(SetupUniTaskWaitState);
@@ -106,6 +120,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: TaskWaitState.Validate rejects a task-wait state with no await action configured.
+		// RCR: no single-line mutation exists — this fixture's unconfigured state also has no transition, so
+		// it trips both the `_taskAwaitAction == null` and `_transition?.TargetState == null` guards;
+		// disabling either leaves the other throwing (verified). Double-covered, not single-line falsifiable.
 		public void TaskWait_MissingConfiguration_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -116,6 +134,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: TaskWaitState.Validate rejects a completion transition with no Target, so a finished task
+		// always has somewhere to go.
+		// RCR: TaskWaitState.cs Validate — change `if (_transition?.TargetState == null)` to `if (false)` →
+		// RED (no InvalidOperationException).
 		public void TaskWait_MissingTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -128,6 +150,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: TaskWaitState.Validate rejects a completion transition pointing back at its own state, which
+		// would re-run the task forever.
+		// RCR: TaskWaitState.cs Validate — change `if (_transition.TargetState?.Id == Id)` to `if (false)` →
+		// RED (no InvalidOperationException).
 		public void TaskWait_TransitionsLoop_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
