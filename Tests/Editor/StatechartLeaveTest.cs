@@ -23,6 +23,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: LeaveState.Enter fans out its OnEnter actions, so a nested region's leave state still runs its
+		// entry hook on the way back out to the layer above.
+		// RCR: LeaveState.cs Enter — change the fan-out loop bound to `i < 0` → RED (StateOnEnterCall(0) never
+		// received). Also reddens the two siblings below, which assert the same hook.
 		public void SimpleNestTest()
 		{
 			var statechart = new Statechart(SetupNest);
@@ -41,6 +45,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: SplitState.ProcessInnerStates hands control to the LEAVE state's own transition, not the split's,
+		// so leaving a region runs the leave's OnTransition and skips the split's completion transition.
+		// RCR: SplitState.cs ProcessInnerStates — change `: leaveState.LeaveTransition;` to `: _transition;` → RED
+		// (OnTransitionCall(2) fires instead of (1)). Also reddens the nest and only-leave siblings.
 		public void SimpleSplitTest()
 		{
 			var statechart = new Statechart(SetupSplit);
@@ -59,6 +67,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: SplitState.ProcessInnerStates detects a leave among its inner states and lets it win over the
+		// split's own completion path; without that detection the split completes normally instead of leaving.
+		// RCR: SplitState.cs ProcessInnerStates — disable the `is LeaveState state` capture → RED (leaveState stays
+		// null, so the split's own transition runs and OnTransitionCall(2) fires). Also reddens the two siblings.
 		public void SplitState_OnlyLeaveInnerStates_LeaveFirstState()
 		{
 			var statechart = new Statechart(factory =>
@@ -90,6 +102,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: LeaveState.Validate rejects a leave state with no transition at all — the null-conditional half of
+		// its guard; the sibling below covers the transition-without-target half.
+		// RCR: LeaveState.cs Validate — change the guard to `LeaveTransition != null && LeaveTransition.TargetState
+		// == null` → RED (guard no longer fires; the layer check below dereferences null, so the thrown type is not
+		// InvalidOperationException). Verified isolated: the sibling below stays green.
 		public void LeaveState_MissingConfiguration_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -100,6 +117,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: LeaveState.Validate rejects a transition declared without a Target — the `.TargetState == null`
+		// half of the same guard the sibling above exercises.
+		// RCR: LeaveState.cs Validate — change the guard to `LeaveTransition == null` → RED (guard no longer fires
+		// for a targetless transition, so the layer check throws the wrong type). Verified isolated: the sibling
+		// above stays green.
 		public void LeaveState_MissingTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -112,6 +134,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: LeaveState.Transition() rejects a second call, so a leave state cannot end up with an ambiguous
+		// pair of exits where the later silently replaces the first.
+		// RCR: LeaveState.cs Transition — change `if (LeaveTransition != null)` to `if (false)` → RED (no
+		// InvalidOperationException; the second transition just overwrites).
 		public void LeaveState_MultipleTransitions_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -131,6 +157,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: LeaveState.Validate requires the target to sit exactly one region layer ABOVE the leave state, so a
+		// leave pointing at its own layer is rejected rather than looping inside the region it means to exit.
+		// RCR: LeaveState.cs Validate — change the layer check's `RegionLayer - 1` to `RegionLayer` → RED (the
+		// same-layer target now passes). Verified: leaves the wrong-layer sibling below green, which is what
+		// separates the two halves of this guard.
 		public void LeaveState_SameLayerTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
@@ -143,6 +174,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: the same layer check also rejects a target further than one layer up — a leave nested two regions
+		// deep may not jump straight to the outermost layer.
+		// RCR: LeaveState.cs Validate — change the layer check's `RegionLayer - 1` to `RegionLayer - 2` → RED (the
+		// two-layer jump now passes). Verified: leaves the same-layer sibling above green.
 		public void LeaveState_WrongLayerTarget_ThrowsException()
 		{
 			Assert.Throws<InvalidOperationException>(() => new Statechart(factory1 =>
