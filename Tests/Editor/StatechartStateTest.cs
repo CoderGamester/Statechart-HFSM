@@ -79,11 +79,12 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		// ADMIT: triggering an event the state never registered leaves the chart untouched.
-		// RCR: no single-line mutation found. SimpleState.OnTrigger's miss path is a plain Dictionary
-		// TryGetValue returning false, and StatechartEvent's Equals/GetHashCode are Id-based, so making the
-		// lookup hit would take coordinated edits to both members — not one line, and the behaviour being
-		// pinned is the BCL's, not this package's (A3). Review candidate rather than trusted coverage.
+		// ADMIT: SimpleState.OnTrigger resolves events through its `_events` map, so an event the state never
+		// registered resolves to no transition and leaves the chart parked.
+		// RCR: none exists — the miss is double-guarded by StatechartEvent's Id-based GetHashCode AND Id-based
+		// Equals. Weakening either alone leaves the lookup missing: `GetHashCode => 0` still fails Equals in the
+		// shared bucket, and an always-true Equals is never consulted because the differing hash sends the probe
+		// to another bucket (both verified green). Double-covered, not single-line falsifiable.
 		public void State_TriggerNotConfiguredEvent_NoEffect()
 		{
 			var statechart = new Statechart(SetupStateFlow);

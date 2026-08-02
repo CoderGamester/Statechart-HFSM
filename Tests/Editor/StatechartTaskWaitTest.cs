@@ -58,10 +58,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: TaskWaitState.OnTrigger ignores the incoming event entirely — it never consults an event map,
 		// so a trigger arriving mid-task cannot pre-empt the await (unlike WaitState, which does honour events).
-		// RCR: no single-line mutation found. Making OnTrigger honour the event (returning _transition when
-		// statechartEvent != null) leaves this test green, because the awaited task completes and reaches the
-		// same final state either way — the assertions cannot separate "the event advanced it" from "the task
-		// did". Review candidate: the name claims more than the body checks (D2).
+		// RCR: TaskWaitState.cs OnTrigger — return `_transition` when `statechartEvent != null` → RED (the
+		// mid-task assertions below fire: the chart advances on Trigger instead of waiting for the task). Those
+		// assertions must stay BEFORE `_blocker = false` — once the task completes both paths reach the same
+		// final state and nothing downstream can tell them apart.
 		public async Task TaskWait_EventTrigger_DoesNothing()
 		{
 			var statechart = new Statechart(SetupTaskWaitState);
@@ -77,6 +77,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			statechart.Trigger(_event);
+
+			// Discriminating window: the task is still pending, so an honoured event would show up here.
+			_caller.DidNotReceive().OnTransitionCall(1);
+			_caller.DidNotReceive().StateOnExitCall(0);
+			_caller.DidNotReceive().FinalOnEnterCall(0);
 
 			_blocker = false;
 
