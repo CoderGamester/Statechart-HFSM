@@ -240,15 +240,16 @@ Not yet documented. No dedicated performance fixtures exist today.
 
 ## 13. Coverage Register
 
-**Baseline — runtime assembly: 84.1% (862/1025), measured 2026-08-02.**
+**Baseline — runtime assembly: 84.0% (862/1025), measured 2026-08-04.**
 This package has no Editor assembly.
+Repo-wide runtime coverage is **74.1% (6609/8922)** across all 11 assemblies.
 
-Regenerate with `Tools/coverage.sh`, which prints the runtime/Editor split.
-Steer by the **runtime** figure: Editor code is ~48% of the repo's coverable
-lines and is accepted-untestable, so the combined number (41.0%) can never
-meaningfully move. Do not compare against any figure recorded before this date —
-earlier reports were produced without `-debugCodeOptimization` (Release mode
-shrinks the denominator ~40%) or with test/sample assemblies leaking into scope.
+Regenerate with `Tools/coverage.sh`, which prints the runtime/Editor split. Steer by
+the **runtime** figure: Editor code is ~48% of coverable lines and accepted-untestable,
+so the combined number (41.1%) can never meaningfully move. Sanity-check any rerun by
+confirming `MathfloatP` reports ~1002 coverable lines — a smaller figure means
+`-debugCodeOptimization` was missing and the denominator silently shrank ~40%.
+
 
 Every untested symbol worth naming is either ACCEPTED (justified — do not
 re-report) or OPEN (a real gap, owed a test). An untested symbol in neither state
