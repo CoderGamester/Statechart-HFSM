@@ -4,18 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.9.5] - 2026-07-29
+## [0.9.5] - 2026-08-04
 
-**Docs**:
-- Completed this package against the host `AGENTS.md` §6.6 (`Tools/style-audit.py` reports 0 items). Documented `StatechartEvent.Equals` — recording that events match on `Id` alone, so two instances sharing a name are never equal — plus `StateInternal.OnTrigger` / `IsStateLogsEnabled`, `SplitState.OnValidate`, `LeaveState.LeaveTransition`, the editor-only `Statechart.CurrentState`, and the `NestedStateData` conversion operator.
-
-**New**
-- Added `AGENTS.md` (contributor/agent guide) and `CLAUDE.md` (Claude Code wrapper) — the package previously had neither, only `README.md`.
-
-- Aligned XML doc comments with the host repo's `AGENTS.md` §6.6: dropped the empty `<param>` / `<returns>` tags on `IStateFactoryInternal.Add` and `ITransitionInternal.CheckCondition`, replaced the `WaitActivity(Action<uint>)` doc block with a `//` rationale comment (constructors are never XML-documented), and added `/// <inheritdoc />` to `StatechartEvent`'s `Equals` / `GetHashCode` / `ToString` overrides.
-
-**Fixed**
-- `README.md` was the unedited Unity "Package Starter Kit" boilerplate template (placeholder package name, references to files that don't exist in this package, generic instructions on *how to build a UPM package* rather than documentation of *this package's actual API*) — replaced with real usage documentation, verified against every file in `Runtime/`.
+**Changed**:
+- Replaced the Unity Package Starter Kit README with accurate Statechart usage and API guidance based on the package's actual runtime surface.
+- Improved public API documentation and automated coverage of existing state creation, transition, nested/split, waiting, and validation behavior; this release does not change runtime behavior.
 
 ## [0.9.4] - 2026-06-26
 
