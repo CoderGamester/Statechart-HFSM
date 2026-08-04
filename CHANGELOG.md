@@ -6,10 +6,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.9.5] - 2026-07-29
 
+**Docs**:
+- Completed this package against the host `AGENTS.md` §6.6 (`Tools/style-audit.py` reports 0 items). Documented `StatechartEvent.Equals` — recording that events match on `Id` alone, so two instances sharing a name are never equal — plus `StateInternal.OnTrigger` / `IsStateLogsEnabled`, `SplitState.OnValidate`, `LeaveState.LeaveTransition`, the editor-only `Statechart.CurrentState`, and the `NestedStateData` conversion operator.
+
 **New**
 - Added `AGENTS.md` (contributor/agent guide) and `CLAUDE.md` (Claude Code wrapper) — the package previously had neither, only `README.md`.
 
-**Docs**:
 - Aligned XML doc comments with the host repo's `AGENTS.md` §6.6: dropped the empty `<param>` / `<returns>` tags on `IStateFactoryInternal.Add` and `ITransitionInternal.CheckCondition`, replaced the `WaitActivity(Action<uint>)` doc block with a `//` rationale comment (constructors are never XML-documented), and added `/// <inheritdoc />` to `StatechartEvent`'s `Equals` / `GetHashCode` / `ToString` overrides.
 
 **Fixed**

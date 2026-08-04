@@ -79,6 +79,9 @@ namespace GameLovers.StatechartMachine.Internal
 			OnValidate();
 		}
 
+		/// <summary>
+		/// Fails fast in editor and debug builds when the split declares no inner states.
+		/// </summary>
 		protected void OnValidate()
 		{
 #if UNITY_EDITOR || DEBUG

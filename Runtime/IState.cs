@@ -251,6 +251,10 @@ namespace GameLovers.StatechartMachine
 			ExecuteFinal = true;
 		}
 
+		/// <summary>
+		/// Wraps a setup delegate as nested-state data with both exit and final execution enabled,
+		/// so a nested state can be declared from a bare lambda.
+		/// </summary>
 		public static implicit operator NestedStateData(Action<IStateFactory> setup)
 		{
 			return new NestedStateData(setup);

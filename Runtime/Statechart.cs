@@ -61,6 +61,7 @@ namespace GameLovers.StatechartMachine
 		public bool LogsEnabled { get; set; }
 
 #if UNITY_EDITOR
+		/// <summary>Name of the state currently active. Editor-only, for debugging.</summary>
 		public string CurrentState => _currentState.Name;
 #endif
 
