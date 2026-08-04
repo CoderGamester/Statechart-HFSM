@@ -6,8 +6,8 @@ using GameLovers.StatechartMachine.Internal;
 namespace GameLovers.StatechartMachine
 {
 	/// <summary>
-	 /// Interface to help debug the state chart
-	 /// </summary>
+	/// Interface to help debug the state chart
+	/// </summary>
 	public interface IStateMachineDebug
 	{
 		/// <summary>
