@@ -25,7 +25,6 @@ namespace GameLovers.StatechartMachine.Internal
 		/// Checks the defined transition condition.
 		/// Returns true if the condition is met, false otherwise
 		/// </summary>
-		/// <returns></returns>
 		bool CheckCondition();
 		/// <summary>
 		/// Trigger the defined transition

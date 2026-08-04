@@ -10,6 +10,7 @@ namespace GameLovers.StatechartMachine.Internal
 	{
 		private readonly IList<Action> _onEnter = new List<Action>();
 		
+		/// <summary>The transition this leave state hands back to the parent region, set when the state is configured.</summary>
 		internal ITransitionInternal LeaveTransition { get; private set; }
 
 		public LeaveState(string name, IStateFactoryInternal factory) : base(name, factory)

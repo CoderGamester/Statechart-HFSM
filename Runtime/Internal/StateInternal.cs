@@ -63,6 +63,7 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public string CreationStackTrace { get; }
 
+		/// <summary>True when either this state or its owning statechart has logging switched on.</summary>
 		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
@@ -150,6 +151,9 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public abstract void Validate();
 
+		/// <summary>
+		/// Returns the transition this state takes for the given event, or null when it does not handle it.
+		/// </summary>
 		protected abstract ITransitionInternal OnTrigger(IStatechartEvent statechartEvent);
 
 		private void TriggerEnter(IStateInternal state)

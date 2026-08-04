@@ -39,9 +39,7 @@ namespace GameLovers.StatechartMachine.Internal
 			Id = ++_idRef;
 		}
 
-		/// <summary>
-		/// This constructor is called externally in <see cref="WaitState"/>
-		/// </summary>
+		// Public despite the type being internal: WaitState constructs it from outside this file.
 		public WaitActivity(Action<uint> onComplete) : this()
 		{
 			_onComplete = onComplete;

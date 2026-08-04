@@ -41,21 +41,27 @@ namespace GameLovers.StatechartMachine
 			Name = name;
 		}
 
+		/// <summary>
+		/// Two events match on <see cref="Id"/> alone, so distinct instances with the same name differ.
+		/// </summary>
 		public bool Equals(IStatechartEvent statechartEvent)
 		{
 			return statechartEvent != null && Id == statechartEvent.Id;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
 			return obj is IStatechartEvent chartEvent && Equals(chartEvent);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return (int) Id;
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return Name;
