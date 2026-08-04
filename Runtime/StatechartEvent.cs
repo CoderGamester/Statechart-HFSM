@@ -46,16 +46,19 @@ namespace GameLovers.StatechartMachine
 			return statechartEvent != null && Id == statechartEvent.Id;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object obj)
 		{
 			return obj is IStatechartEvent chartEvent && Equals(chartEvent);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return (int) Id;
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return Name;

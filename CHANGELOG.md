@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 **New**
 - Added `AGENTS.md` (contributor/agent guide) and `CLAUDE.md` (Claude Code wrapper) — the package previously had neither, only `README.md`.
 
+**Docs**:
+- Aligned XML doc comments with the host repo's `AGENTS.md` §6.6: dropped the empty `<param>` / `<returns>` tags on `IStateFactoryInternal.Add` and `ITransitionInternal.CheckCondition`, replaced the `WaitActivity(Action<uint>)` doc block with a `//` rationale comment (constructors are never XML-documented), and added `/// <inheritdoc />` to `StatechartEvent`'s `Equals` / `GetHashCode` / `ToString` overrides.
+
 **Fixed**
 - `README.md` was the unedited Unity "Package Starter Kit" boilerplate template (placeholder package name, references to files that don't exist in this package, generic instructions on *how to build a UPM package* rather than documentation of *this package's actual API*) — replaced with real usage documentation, verified against every file in `Runtime/`.
 

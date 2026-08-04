@@ -41,7 +41,6 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <summary>
 		/// Adds the given list of <paramref name="states"/> to this <see cref="IStateFactory"/> to building upon
 		/// </summary>
-		/// <param name="states"></param>
 		void Add(IList<IStateInternal> states);
 	}
 
