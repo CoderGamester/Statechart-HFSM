@@ -4,7 +4,7 @@
 
 ## 1. Package Overview
 - **Package**: `com.gamelovers.statechart`
-- **Unity**: 2022.3+ (the only package in the family with a floor below 6000.0 — verify before assuming 6000.0-only APIs are safe here)
+- **Unity**: minimum 6000.0; compatibility reference streams 6000.0.x, 6000.3.x, and 6000.5.x. Reference editors: 6000.0.81f1, 6000.3.21f1, 6000.5.7f1 (primary). Do not call a stream validated without current matrix artifacts.
 - **Dependencies** (see `package.json`)
   - `com.cysharp.unitask` (2.5.10): `ITaskWaitState.WaitingFor(Func<UniTask>)` overload
 

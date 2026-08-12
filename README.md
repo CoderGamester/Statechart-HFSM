@@ -1,103 +1,90 @@
 # GameLovers Statechart
 
-[![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue.svg)](https://unity3d.com/get-unity/download)
+Hierarchical statecharts for Unity 6 with nested and parallel regions, event transitions, choices, and async waits.
+
+[![Unity](https://img.shields.io/badge/Unity-6000.0%20%7C%206000.3%20%7C%206000.5-blue.svg)](https://unity.com/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
-A Hierarchical Finite State Machine (Statechart / HFSM) for Unity — states can nest into sub-regions, split into parallel regions, and block on async waits, all defined once in a single setup closure with no runtime mutation of the chart's shape.
+## When to use it
 
-## Why Use This Package?
+Use Statechart when a flat FSM cannot express hierarchical behavior, concurrent regions, or controlled async waits clearly. The package is pipeline-neutral and requires UniTask for its `UniTask` wait overloads.
 
-Plain FSMs get unwieldy once a game state has sub-states of its own (a "Playing" state that is itself "Loading" → "Countdown" → "InProgress"), or needs two things happening at once (an animation playing while input is disabled). A Statechart — per the [UML spec](http://www.omg.org/spec/UML) and the broader [statecharts model](https://statecharts.github.io/what-is-a-statechart.html) — solves both by letting a state open its own nested region (`Nest`) or two parallel regions (`Split`), instead of flattening everything into one state graph.
+## Unity compatibility
 
-### Key Features
-- **10 state types** covering the common Statechart vocabulary: `Initial`, `Final`, `State` (event-blocking), `Transition` (pass-through), `Choice` (conditional branch), `Wait` (activity-blocking), `TaskWait` (async-blocking), `Nest` (sequential sub-region), `Split` (parallel sub-regions), `Leave` (early exit to a parent region).
-- **Fluent setup** — one constructor closure defines the entire chart; no separate registration step.
-- **Async-aware waiting** — `TaskWait` states block on a `Task` or `UniTask` directly.
-- **Editor-time validation** — malformed setups (missing initial state, transition with no target, transition loops) throw immediately at construction in the Editor / Debug builds.
+| Item | Current policy |
+| --- | --- |
+| Minimum Unity version | `6000.0` |
+| Reference streams | `6000.0.x`, `6000.3.x`, `6000.5.x` |
+| Reference editors | `6000.0.81f1`, `6000.3.21f1`, `6000.5.7f1` (primary) |
+| Render pipeline | Pipeline-neutral |
+| Validation status | Compatibility target; consult fresh matrix artifacts before claiming validation. |
 
-## System Requirements
+## Install
 
-- **[Unity](https://unity.com/download)** (v2022.3+) — the only package in the GameLovers family that doesn't require Unity 6
-- **[UniTask](https://github.com/Cysharp/UniTask)** (v2.5.10+) — for the `ITaskWaitState.WaitingFor(Func<UniTask>)` overload
-
-Dependencies are automatically resolved when installing via Unity Package Manager.
-
-## Installation
-
-### Via Unity Package Manager (Recommended)
-
-1. Open Unity Package Manager (`Window` → `Package Manager`)
-2. Click `+` → `Add package from git URL`
-3. Enter: `https://github.com/CoderGamester/Statechart-HFSM.git`
-
-### Via manifest.json
+Add UniTask explicitly when installing from Git:
 
 ```json
 {
   "dependencies": {
-    "com.gamelovers.statechart": "https://github.com/CoderGamester/Statechart-HFSM.git"
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.10",
+    "com.gamelovers.statechart": "https://github.com/CoderGamester/Statechart-HFSM.git#0.9.5"
   }
 }
 ```
 
-## Key Components
+## First success
 
-| Type | Purpose |
-|---|---|
-| `Statechart` | The chart itself — `Run()` / `Pause()` / `Trigger(event)` / `Reset()` |
-| `IStateFactory` | Passed into the setup closure; one factory method per state type (`Initial`, `Final`, `State`, `Transition`, `Choice`, `Wait`, `TaskWait`, `Nest`, `Split`, `Leave`) |
-| `ITransition` / `ITransitionCondition` | `.OnTransition(action).Target(state)`; `Choice` transitions add `.Condition(() => bool)` |
-| `IStatechartEvent` / `StatechartEvent` | Event identity is per-instance — keep one instance per logical event |
-| `IWaitActivity` | Passed into a `Wait` state's `WaitingFor(...)`; call `.Complete()` to unblock, or `.Split()` to fan out |
-
-## Quick Start
+Keep events as fields: statechart event identity is by object instance, not by its display name.
 
 ```csharp
 using GameLovers.StatechartMachine;
 using UnityEngine;
 
-var jumpEvent = new StatechartEvent("Jump");
-
-var statechart = new Statechart(factory =>
+public sealed class PlayerStatechart : MonoBehaviour
 {
-    var initial = factory.Initial("Initial");
-    var idle = factory.State("Idle");
-    var jumping = factory.State("Jumping");
-    var final = factory.Final("Final");
+    private readonly StatechartEvent jump = new("Jump");
+    private Statechart chart;
 
-    initial.Transition().Target(idle);
+    private void Awake()
+    {
+        chart = new Statechart(factory =>
+        {
+            var initial = factory.Initial("Initial");
+            var idle = factory.State("Idle");
+            var jumping = factory.State("Jumping");
+            initial.Transition().Target(idle);
+            idle.Event(jump).Target(jumping);
+            jumping.Event(jump).Target(idle);
+        });
+        chart.Run();
+    }
 
-    idle.Event(jumpEvent).OnTransition(() => Debug.Log("Jumping!")).Target(jumping);
-    idle.OnEnter(() => Debug.Log("Entered Idle"));
-
-    jumping.OnEnter(() => Debug.Log("Entered Jumping"));
-    jumping.Event(jumpEvent).Target(final); // second Jump ends the chart
-
-    final.OnEnter(() => Debug.Log("Done"));
-});
-
-statechart.Run();
-statechart.Trigger(jumpEvent); // Idle -> Jumping
-statechart.Trigger(jumpEvent); // Jumping -> Final
+    public void Jump() => chart.Trigger(jump);
+}
 ```
 
-Every state is created via the `factory` passed into the constructor closure — there is no separate registration call, and the chart's shape cannot be changed after construction. See [AGENTS.md](AGENTS.md) for nested regions (`Nest`), parallel regions (`Split`), async waits (`TaskWait`), and the full state-type reference.
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Jumping: jump event
+  Jumping --> Idle: jump event
+```
 
-## Related docs
+## Runtime semantics
 
-| Document | Purpose |
-|---|---|
-| [AGENTS.md](AGENTS.md) | Contributor/agent guide — full state-type reference, architecture, gotchas |
-| [CHANGELOG.md](CHANGELOG.md) | Version history |
+| Concept | Behavior |
+| --- | --- |
+| `Trigger` | Ignored until `Run()` and while the chart is paused |
+| `Choice` | Takes the first true transition; define a fallback deliberately |
+| Action-only transition | Valid when it has no target and exists for its action |
+| `Wait` | Resumes when its wait activity completes; can receive configured events |
+| `TaskWait` | Waits on a `Task` or `UniTask`; it does not receive events while waiting |
+| `Nest` / `Split` | Create sequential nested regions / concurrent regions |
 
-## Contributing
+Missing top-level initial configuration is rejected in all builds. Other setup validation has build-dependent editor/debug behavior; write and test the behavior you require instead of relying on broad “all invalid graphs fail immediately” assumptions.
 
-Contributions are welcome! See [AGENTS.md](AGENTS.md) for architecture details, coding standards, and common workflows.
+## Recipes and support
 
-## Support
+The public API supports `Nest`, `Split`, `Choice`, `Wait`, and `TaskWait`; add a small package sample before treating any recipe as a supported end-to-end workflow. Until then, use the source tests as the executable reference.
 
-- **Issues**: [Report bugs or request features](https://github.com/CoderGamester/Statechart-HFSM/issues)
-
-## License
-
-MIT — see [LICENSE.md](LICENSE.md).
+See [CHANGELOG.md](CHANGELOG.md) and file an [issue](https://github.com/CoderGamester/Statechart-HFSM/issues). `AGENTS.md` is contributor guidance, not end-user API documentation.
