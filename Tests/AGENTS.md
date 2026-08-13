@@ -1,312 +1,82 @@
-# GameLovers.Statechart Tests — AI Agent Guide
+# GameLovers Statechart Tests — Agent Guide
 
-This file contains testing conventions for the `com.gamelovers.statechart` package. It is the source of truth when reading, editing, or creating test files under `Tests/`.
+This guide adds test-only rules to the package and host guides.
 
-For runtime architecture, gotchas, and package-level context, see the parent [`AGENTS.md`](../AGENTS.md).
+## Shared test rules
 
-§1 and §2 are shared verbatim across every GameLovers package. A change to either must be applied to all six `Tests/AGENTS.md` files in the same working session, one commit per submodule.
+<!-- BEGIN SHARED TEST RULES -->
+### Admission
 
-## 1. ADMIT — Test Admission Test
+A new test is admitted only when all six answers are yes:
 
-A proposed test is admitted only if all five answers are YES. Record the first two
-as comments on the test itself.
-
-| | Question |
+| Check | Requirement |
 |---|---|
-| **A1 DEFECT** | Can you name the defect in one sentence, referencing a production file and symbol? "It could break" is not a defect. |
-| **A2 RED** | Can you name the exact production edit — one line or one branch, identified by `file` + `symbol` — that makes this test fail? If no such single edit exists, the test pins nothing. |
-| **A3 PACKAGE** | Does every assertion read a value this package computed? Reject assertions on `new X() != new X()`, `!= null` on a freshly constructed object, default struct/enum values, or anything the C# spec or the Unity engine already guarantees. |
-| **A4 CHEAPEST** | Is this the cheapest tier that covers the defect? EditMode beats PlayMode; a `[TestCase]` row on an existing fixture beats a new `[Test]`; a new `[Test]` beats a new fixture. Grep before writing. |
-| **A5 UNIQUE** | Does no existing test already fail on the A2 edit? Grep the symbol under test across `Tests/` first. |
-| **A6 ENVIRONMENT** | Would this assertion's outcome change if project configuration changed — a renderer feature installed or removed, an Addressables catalog built, a sample imported, a quality tier switched? If yes, the test must **read** that state, not assume one value of it. |
+| **A1 Defect** | Name the production file/symbol and the incorrect behavior in one sentence. “It could break” is not a defect. |
+| **A2 Red** | Name a plausible production edit that should make the assertion fail. Prefer one line/branch; shared-path integration mutations are allowed when isolation is dishonest. |
+| **A3 Package-owned** | Every assertion must read behavior this package computes, not C# defaults, fresh-object non-nullness, or Unity guarantees. |
+| **A4 Cheapest** | Use the cheapest honest tier: a test case before a new test, EditMode before PlayMode, and an existing fixture before a new fixture. |
+| **A5 Unique** | Grep the symbol, derived/wrapper types, and paired setup fields. Do not add a test already reddened by the same narrow defect. |
+| **A6 Environment** | Control ambient renderer, Addressables, sample, static, and project state, or branch the expectation on the state actually observed. |
 
-**A6 in practice.** A6 is not A3. A3 asks whether the package computed the value; A6
-asks whether the test assumed which value it would be. A test can satisfy A3 and still
-fail A6 — reading a package-computed flag is fine, hard-coding the expectation that the
-flag is `false` is not.
+Two additional rejects apply:
 
-The concrete instance: `UiBackdropBlurPresenterFeatureTests` unconditionally expected
-the "no renderer feature installed" error. Production only logs it when
-`UiBackdropBlurRendererFeature.IsInstalled` is false. Batchmode never instantiates the
-URP renderer, so the flag was false and all five tests passed; in the Editor the feature
-registers from the project's renderer asset, the flag is true, production correctly stays
-silent, and all five failed. The fixture was really asserting *"this project has no blur
-renderer feature"* — a fact about the repo, not about the code under test.
+- **D1 Tautology:** a lone `DoesNotThrow`, freshly-created non-null assertion, language default, or input-derived substring match pins no package behavior unless used by a named harness sentinel.
+- **D2 Name/body mismatch:** deleting or bypassing the behavior promised by the test name must not leave the test green. Strengthen the assertion or rename the test to its actual claim.
 
-The fix shape is always the same: branch the expectation on the state instead of assuming
-it, and leave the assertions that are actually the subject untouched.
+Fixtures under `Smoke/` are exempt from A1/A2 and may assert construction/bootstrap viability. The exemption is directory-scoped, not permission to use smoke assertions in Unit or Integration fixtures.
 
-```csharp
-if (UiBackdropBlurRendererFeature.IsInstalled) return;   // production logs nothing
-LogAssert.Expect(LogType.Error, ...);
-```
+### Revert and Confirm Red (RCR)
 
-If a test genuinely needs one specific value of ambient state, it must establish that
-state itself in `[SetUp]` and restore it in `[TearDown]` — never inherit it.
+Every new or strengthened behavioral test must be observed failing once against a plausible production mutation before commit:
 
-**A5-bis — inherited-type coverage.** Before proposing a fixture for a type that
-derives from or wraps another tested type, grep `Tests/` for the derived type's
-name and for paired `[SetUp]` fields. Base-and-derived pairs are tested jointly in
-the base's fixture unless the derived type adds new public surface.
+1. Run the new test against normal production code and observe GREEN.
+2. Preserve the exact working patch or use an isolated worktree; then apply the A2 mutation. Never restore a dirty file from `HEAD`.
+3. Run the smallest attributable filter. RED must come from the intended assertion with a diagnostic failure, not a compile error or unrelated `NullReferenceException`.
+4. Restore the saved production state, confirm the mutation is gone without losing other edits, and observe GREEN again.
+5. Record the observation on the test using `file + symbol`, never a line number.
 
-**Two mechanical disqualifiers** — violate one and the test is rejected:
-
-- **D1 — tautology.** If the only assertion is `Assert.DoesNotThrow`,
-  `Assert.IsNotNull`, or a disjunction of `Contains(...)` substrings, the test
-  fails A2 unless you write down what *would* throw, be null, or not match. A
-  substring disjunction that includes a string the input itself embeds is
-  unfalsifiable by construction.
-- **D2 — name/body contract.** The test name is a claim. If deleting the
-  production feature the name mentions leaves the test green, the name is a lie.
-
-**Smoke exemption, by directory.** Fixtures under `Smoke/` are exempt from A1 and
-A2 and may assert construction-without-throwing only. Their defect class is "the
-assembly no longer loads / bootstrap regressed", which is real and not expressible
-otherwise. The exemption is by directory, not by assertion shape — a Unit test
-that only asserts `IsNotNull` is still rejected.
-
-## 2. RCR — Revert and Confirm Red
-
-> Every new or strengthened test must be observed failing, once, against a
-> one-line production revert, before it is committed.
-
-Line coverage proves a line executed. It does not prove any test would notice if
-that line were wrong. RCR is the cheap substitute for mutation testing, and it is
-what makes a coverage number trustworthy.
-
-**Procedure** (~90 seconds per test):
-
-1. Write the test. Run it. Green.
-2. Apply the A2 edit — invert the comparison, delete the guard clause, return
-   early, comment out the one line. **One line only**: a broad deletion proves
-   nothing, because it would also "fail" a tautological test via a compile error.
-3. Run only that test. It must be **RED**, and the failure message must name the
-   thing you broke. A red-by-`NullReferenceException` does not count — that is the
-   test crashing, not asserting.
-4. `git checkout -- <production file>`. Re-run. Green.
-5. Record the mutation in the test's header comment.
-
-**Recording format** — on the test, not in a separate ledger. A ledger rots the
-moment a test is renamed; a comment travels with the test, appears in every diff
-that touches it, and lets a reviewer re-run the mutation in 30 seconds.
+Use this compact form, targeting four lines and never exceeding six:
 
 ```csharp
 [Test]
-// ADMIT: <one-sentence defect, naming a production file and symbol>
-// RCR:   <file> <symbol> — <the one-line mutation> → RED (<what the failure says>). <YYYY-MM-DD>
+// ADMIT: <owned defect naming production file and symbol>
+// RCR: <file> <symbol> — <mutation> → RED (<assertion failure>). <YYYY-MM-DD>
 public void Method_Condition_ExpectedResult()
 ```
 
-**Anchor on `file` + `symbol`, never `file:line`.** Line numbers rot on the first
-unrelated edit above them — a stale `:474` pointing at a method that moved to `:464`
-sends the next reader to the wrong code and quietly destroys the comment's value.
+Do not narrate investigation history in the test. A nearby mutation that looked valid but stayed green may be recorded when that negative result prevents repeated work.
 
-**Budget: four lines is the target, six is the ceiling.** One sentence of ADMIT,
-one of RCR, wrapped. This obeys the repo-wide rule in the root `AGENTS.md`
-(§ Code comments): *"One sentence usually suffices. Multi-paragraph rationale is a
-smell."* Anything past the ceiling belongs in the commit body or `docs/`, not on the
-test. Two things in particular must NOT appear here:
-- **Change narration.** *"An earlier version of this test was a tautology"* is diff
-  context; the root `AGENTS.md` forbids it outright. A comment states the code's
-  permanent condition, not its history. Put it in the commit message.
-- **Investigation transcript.** The empirical detail that convinced *you* is not
-  what the next reader needs. They need the mutation and the expected failure.
+When a test resists an isolated mutation, classify it before acting:
 
-The one extension worth its lines is a **negative** result: naming a nearby edit
-that looks like a valid mutation but is NOT one (because it is already guarded, or
-because it reddens a sibling test instead). That stops the next reader repeating a
-dead end, and it cannot be recovered from the code.
-
-Also add one line per new test to the commit body: `RCR: <TestName> ← <file> <symbol> <mutation>`.
-That makes `git log --grep=RCR` the audit surface.
-
-**UNFALSIFIABLE — the one honest exemption.** Some correct tests provably have no
-one-line mutation. The commonest case is **double-guarded validation**: an
-unconfigured object trips two independent guards, so disabling either leaves the
-other throwing. Deleting such a test would lose real coverage, so it is exempt —
-but only on the same terms as §13, never as a shrug:
-
-```csharp
-// RCR: none exists — <input> trips both <guard A> and <guard B>; disabling either
-// leaves the other throwing (verified). Double-covered, not single-line falsifiable.
-```
-
-The reason must be falsifiable and must record that a mutation was actually tried
-and observed green. "Couldn't find one" is not a reason — that is an unfinished RCR,
-not an exemption.
-
-**Verdicts for a test that resists mutation.** Work out which of four it is; they
-have different answers:
-
-| Finding | Test | Action |
+| Verdict | Meaning | Action |
 |---|---|---|
-| **A3 reject** — no line in `Runtime/` or `Editor/` participates; the assertion is C#- or Unity-guaranteed | pins nothing, ever | **Delete** |
-| **A5 duplicate** — the only mutation that reddens it already belongs to a sibling | pins nothing new | **Delete**, naming the surviving sibling in the commit body |
-| **D2 overclaim** — the name promises behaviour the body cannot detect | name is a lie | **Strengthen the assertion**, or rename to what it actually checks |
-| **UNFALSIFIABLE** — real behaviour, but double-guarded or otherwise unbreakable one line at a time | valid | **Keep**, with the exemption comment above |
-| **SHARED-PATH** — no unique one-line pin, but the test was *observed* reddening under a broader mutation | valid | **Keep**, recording the covering mutation and its blast radius |
+| **A3 reject** | No package production behavior participates. | Delete the test. |
+| **A5 duplicate** | The same narrow mutation already belongs to a sibling. | Delete it and name the surviving sibling in review/commit context. |
+| **D2 overclaim** | The mutation implied by the name leaves the body green. | Strengthen or rename. |
+| **UNFALSIFIABLE** | Real package behavior is double-guarded or cannot be broken by a safe isolated edit. | Keep only after attempted mutations are recorded with the specific reason. |
+| **SHARED-PATH** | A broader mutation reddens this legitimate integration path together with siblings. | Keep, recording the observed mutation and blast radius. |
 
-**SHARED-PATH exists because blast radius measures specificity, not value.** A test that
-only reddens under a broad mutation still catches that regression — an integration test
-that dies when `UiService.CloseUi` is gutted is doing its job, even though no single line
-is *its* line. Without this row the table offers only delete-or-strengthen, and such tests
-get deleted for the crime of being integration tests.
+Unannotated tests have three possible histories: observed RED with lost write-back, collateral RED under another test's mutation, or never probed. Check `.test-all/rcr/` before probing and never write prepared annotation text without matching observed evidence. Mutation records stay under `.test-all/rcr/`, not `/tmp`.
 
-```csharp
-// ADMIT: exercises <Production.Symbol>'s <path>; no unique one-line pin.
-// RCR: no isolated mutation — reddens under <SiblingTest>'s mutation (radius N, verified).
-// Shared-path coverage, not a duplicate.
-```
+Benchmarks use the inverted check: removing the workload from the measured body must materially change the result. Run the actual test assembly; a plain Unity open does not compile assemblies constrained by `UNITY_INCLUDE_TESTS`.
+<!-- END SHARED TEST RULES -->
 
-The radius must be a **recorded observation**, not an estimate. This is also the row most
-easily abused: "some mutation somewhere reddened it" is not the standard. Distinguish it
-from A5 by asking what the covering mutation actually broke — if it broke the one narrow
-guard the sibling owns, this is a duplicate; if it broke a path both tests legitimately
-traverse, this is shared-path coverage.
+## Current suite
 
-A cluster of tests that all die to the same broad mutation is **over-provisioned, not
-individually worthless**. Thinning it is a deliberate editorial decision made by a human
-looking at what each assertion adds — never an automatic consequence of the verdict pass.
+- All tests live under `Tests/Editor/` in `GameLovers.Statechart.Editor.Tests`; there is no PlayMode or performance assembly.
+- The test assembly references Statechart, UniTask, NUnit, and NSubstitute.
+- There is no runtime `InternalsVisibleTo` grant. Test through the public statechart interfaces unless an intentional assembly-boundary change adds one.
 
-**A3 is checked first, and it is the commonest way the exemption gets abused.**
-UNFALSIFIABLE is for behaviour this package genuinely owns but cannot be broken one
-line at a time. It is *never* for behaviour the package does not own. The tell is in
-the reason itself: if you find yourself writing "no line in Runtime/ participates",
-"the only edit is a compile error", or "these are C#'s zero-init values", you have
-found an A3 reject and the verdict is **delete** — a field-only struct's assignment
-and default values are the language's guarantees, not yours. Writing that sentence
-under an UNFALSIFIABLE heading launders a test §1 would never have admitted.
+## Package conventions
 
-Prove the class before acting. An A5 duplicate is confirmed when the sibling's
-mutation is observed reddening both; a D2 overclaim is confirmed when the mutation
-the name implies leaves the test green; an A3 reject is confirmed when no production
-symbol appears anywhere in the causal chain behind the assertion.
+- Use the existing `GameLoversEditor.StatechartMachine.Tests` namespace and singular `{Subject}Test` fixture names.
+- Callback collaborators use the shared `IMockCaler`/NSubstitute pattern. Avoid new helper abstractions when a local callback counter is sufficient.
+- Setup graphs must reuse event instances; do not accidentally test name equality with freshly constructed events.
+- Tests for validation exceptions run in the Editor configuration where validation is compiled. They must not imply release-build enforcement.
+- Async waiting tests distinguish `IWaitState` event behavior from `ITaskWaitState` queue/exit behavior.
 
-**Two consequences, stated so RCR does not become theatre:**
+## Verification
 
-- A test with no `// RCR:` line — and no UNFALSIFIABLE exemption — is not trusted
-  coverage. In an audit it is a suspect by default. **`Smoke/` is exempt here too**, on the
-  same directory basis as §1: its defect class is "the assembly no longer loads", which has
-  no one-line mutation, so demanding an RCR line there flags those fixtures forever. The
-  exemption is the directory, not the assertion shape.
-- **"Unannotated" is three states, not one, and they need different actions.** A test with no
-  `// RCR:` line may have been (a) observed RED with the write-back lost, (b) seen reddening
-  only as collateral inside another test's blast radius, or (c) never probed. Only (c) needs a
-  probe; (a) needs the recorded observation written back; (b) is SHARED-PATH evidence, not a
-  unique pin. Check `.test-all/rcr/` before probing, and never write prepared annotation text
-  without a matching `RED-OK` for that test — prepared text also exists for tests that were
-  never probed, and writing it fabricates a verified claim.
-- **Benchmarks are included, inverted:** a performance test must be observed
-  *changing its number* when the measured operation is removed from the measured
-  body. A benchmark whose measured region does not contain the workload is a
-  tautology in `Measure` clothing.
-
-## 3. Placement Rules
-
-Not yet documented — this package has not been through a test audit. There is a
-single `Tests/Editor/` assembly and no PlayMode tests today. See the parent
-[`AGENTS.md`](../AGENTS.md) for runtime architecture until this section is filled in.
-
-## 4. Namespace and Suppression
-
-Not yet documented — see existing files under `Tests/Editor/` for the current
-(unaudited) convention.
-
-## 5. Naming
-
-Not yet documented.
-
-## 6. Mock / Helper Types
-
-Not yet documented. Note: NSubstitute is referenced in this package's test asmdef.
-
-## 7. Black-Box / Reflection Policy
-
-Not yet documented. Note: there is no `InternalsVisibleTo` grant from `Runtime/`
-to the test assembly in this package as of this writing — verify before assuming
-internal access is available.
-
-## 8. Fields and Setup
-
-Not yet documented.
-
-## 9. Assertion Style
-
-Not yet documented.
-
-## 10. PlayMode Test Cleanup
-
-None — this package has no PlayMode assembly.
-
-## 11. Performance Tests
-
-Not yet documented. No dedicated performance fixtures exist today.
-
-## 12. Test Directory Layout
-
-| Directory | Contents |
-|---|---|
-| `Tests/Editor/` | The package's entire automated suite (EditMode only) |
-
-## 13. Coverage Register
-
-**Baseline — runtime assembly: 84.0% (862/1025), measured 2026-08-04.**
-This package has no Editor assembly.
-Repo-wide runtime coverage is **74.1% (6609/8922)** across all 11 assemblies.
-
-Regenerate with `Tools/coverage.sh`, which prints the runtime/Editor split. Steer by
-the **runtime** figure: Editor code is ~48% of coverable lines and accepted-untestable,
-so the combined number (41.1%) can never meaningfully move. Sanity-check any rerun by
-confirming `MathfloatP` reports ~1002 coverable lines — a smaller figure means
-`-debugCodeOptimization` was missing and the denominator silently shrank ~40%.
-
-
-Every untested symbol worth naming is ACCEPTED (justified — do not re-report),
-OPEN (a real gap, owed a test), or CLOSED (the gap was filled). An untested symbol
-in none of the three is an audit finding.
-
-**A CLOSED row must name the commit AND the observation that closed it, including the
-environment the observation came from.** A row closed on "the fix landed" is still OPEN:
-the fix is the edit, the closure is the evidence. This is what kept the uiservice A6 row
-open until the Editor half ran — the edit was in and batchmode was green, and neither of
-those was the thing in doubt.
-
-**Closing a row means re-deriving its claim against current source, never reading the
-commit that claimed to fix it.** Re-check every symbol and fixture the row names. A partial
-fix and a complete one produce the same green suite and the same confident commit message,
-so the commit cannot be the evidence for its own completeness. Recorded instance: the
-mobileservices editor-static row nearly closed on a commit that genuinely did stop fixtures
-inheriting statics — for two of the three fixtures the row named. The third was found by
-grepping which fixtures touch each static, and it was passing only because its siblings
-happened to restore the static in their `finally` blocks.
-
-An ACCEPTED row needs one of exactly three falsifiable reasons:
-- **(i) no branching** — zero conditionals, so there is no behaviour to pin.
-- **(ii) engine-owned** — the assertion would target Unity/OS behaviour
-  (`[DllImport]`, `AndroidJavaObject`, Addressables statics).
-- **(iii) harness-impossible** — the state cannot be fabricated in EditMode or
-  PlayMode, **with the specific blocker named**.
-
-"Low value", "hard to test", and "covered by manual QA" are NOT valid reasons. If
-none of the three applies, the row is OPEN.
-
-ACCEPTED is dated and **expires on edit**: if the symbol's file changes, the
-reason is re-checked in that PR. A `(i) no branching` row is void the moment
-someone adds an `if`.
-
-OPEN is the only place a deletion may park coverage. A test removed for weakness
-either had a stronger sibling (named in the commit body) or leaves an OPEN row.
-The count of OPEN rows is the honest coverage-debt number.
-
-| Symbol (file:line) | State | Reason / Owed | Recorded |
-| 8 production edits reddening only collaterally (`Runtime/**State.cs`) | OPEN | Measured 2026-08-04 from `.test-all/rcr/unowned-edits.json`: 8 edits produced RED but never an `isolated` verdict, spread thinly (`LeaveState.cs` 2, `SplitState.cs` 2, `WaitState.cs` 1). Low enough to be noise rather than a pattern; recorded for completeness so the number is not rediscovered as a finding. | 2026-08-04 |
-|---|---|---|---|
-
-Empty — this package has not yet been through a coverage audit. Do not assume an
-untested symbol here is accepted; it is simply unreviewed.
-
-## 14. Update Policy
-
-Update this file when this package is next audited for test coverage, and when
-§1/§2 change upstream (propagate to all six `Tests/AGENTS.md` files in the same
-session).
+- Run the Editor test assembly after changes to transitions, nesting, split completion, waits, leave behavior, or validation.
+- Add PlayMode only if a new production behavior genuinely requires frames or Unity object lifecycle; do not create it for organizational symmetry.
+- Update this guide only when the assembly, placement, helper, or stable test convention changes.
