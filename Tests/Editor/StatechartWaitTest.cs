@@ -53,7 +53,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: WaitActivity.AreInnerCompleted requires EVERY split child to report IsCompleted before the
 		// parent _activity counts as done, so completing both children releases the wait.
-		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!_activity.IsCompleted)` to `if (true)` (no
+		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!activity.IsCompleted)` to `if (true)` (no
 		// child ever counts as complete) → RED (the chart never advances even with both completed). The
 		// on-hold sibling stays green: it expects no advance either way.
 		public async Task SplitActivity_CompleteBoth_Success()
@@ -92,7 +92,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: WaitActivity.IsCompleted ANDs the parent's own _completed flag with AreInnerCompleted(), so
 		// one finished child out of two leaves the chart waiting rather than advancing early.
-		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!_activity.IsCompleted)` to `if (false)` so
+		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!activity.IsCompleted)` to `if (false)` so
 		// every child counts as done → RED (the chart advances with one child still outstanding). Dropping
 		// the inner term from IsCompleted instead does NOT redden this: the parent's own _completed is what
 		// the surviving term reads, and Complete() has already set it.
@@ -167,7 +167,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 				var final = SetupSimpleFlow(factory, waiting);
 
 				waiting.OnEnter(() => _caller.StateOnEnterCall(0));
-				waiting.WaitingFor(_activity => {}).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+				waiting.WaitingFor(waitActivity => { }).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 				waiting.Event(_event).OnTransition(() => _caller.OnTransitionCall(2));
 				waiting.OnExit(() => _caller.StateOnExitCall(0));
 			});
