@@ -9,7 +9,6 @@ This guide adds package-specific rules to the host repository guide. Consumer us
 - `GameLovers.Statechart.Editor` holds the Statechart Debugger.
 - `Samples~/GameFlow` is the single package sample. This package is render-pipeline-neutral.
 - Public contracts live at `Runtime/`; implementations under `Runtime/Internal/` remain internal. `Runtime/AssemblyInfo.cs` grants internals to the Editor and Editor test assemblies only.
-- Before reading, editing, or creating any file in `Editor/`, you **MUST** read [Editor/AGENTS.md](Editor/AGENTS.md) first.
 
 ## Statechart invariants
 
@@ -37,6 +36,15 @@ This guide adds package-specific rules to the host repository guide. Consumer us
 - Tools read the chart only through `RootRegion`, `GetActiveStates`, `IsActive` and `Traced`, and discover it through `Statechart.Created`. Do not add view-specific hooks to the runtime.
 - Sample code stays in `Samples~/GameFlow` with its own asmdef; package assemblies never reference it. After changing `Samples~`, refresh and validate the imported copy as the host guide requires.
 - Before changing anything under `Tests/`, read `Tests/AGENTS.md`.
+
+## Statechart Debugger
+
+- `StatechartDebuggerWindow` is a UI Toolkit `EditorWindow` under `Tools/GameLovers/Statechart Debugger`. Its toolbar acts on the selected live chart (Run, Pause, Reset); it never builds a throwaway chart.
+- `LiveChartView` and `TreeTraceView` read the same three sources: `IStatechart.RootRegion`, `GetActiveStates`, and `StatechartRegistry.Entry.History`. A view must not need its own runtime data. Toolbar toggles named after each view turn it on or off.
+- `StatechartRegistry` subscribes to `Statechart.Created`. History records keep state ids and paths, never `IStateNode` references: a node is a live state, so holding one keeps its chart alive.
+- The window refreshes on a 100 ms schedule and repaints views only when `StatechartRegistry.Version` changes. Keep per-refresh work proportional to the chart size and free of allocations beyond the active list.
+- Styles live in `StatechartDebugger.uss`, loaded by package path. Use colors that read in both Editor themes.
+- A Graph Toolkit view was tried and removed: on 6000.6 its flat graph hid nest and split hierarchy, and the API has no read-only or container node. Do not reintroduce it without those capabilities.
 
 ## Verification and documentation
 
