@@ -138,7 +138,7 @@ Open **Tools > GameLovers > Statechart Debugger** in Play mode. Pick a chart fro
 | **B · Graph** | A Graph Toolkit graph generated from the chart: active states get a bright green accent bar and taken transitions stay thick | 6000.6+ |
 | **C · Tree + trace** | An indented tree with the active states marked, and the latest 256 trace steps | All |
 
-View B writes a generated, display-only `.statechartdebug` asset to `Assets/StatechartDebugger/` and opens it in the Graph Toolkit window; dock that window next to the debugger. Its highlights are recorded as undo steps of that graph and mark it as modified; there is nothing to save. Delete the folder or add it to your `.gitignore` if you do not want to keep it. The **Copy** menu puts the Mermaid diagram, the active state paths or the trace history on the clipboard.
+View B writes a generated, display-only `.statechartdebug` asset to `Assets/StatechartDebugger/` and opens it in the Graph Toolkit window; dock that window next to the debugger. Graph Toolkit has no read-only mode, so the graph can be edited, but edits never reach the game and are replaced the next time **B Graph** opens it; a warning marker on the first node says so. Its highlights are recorded as undo steps of that graph and mark it as modified; there is nothing to save. Delete the folder or add it to your `.gitignore` if you do not want to keep it. The **Copy** menu puts the Mermaid diagram, the active state paths or the trace history on the clipboard.
 
 ## Samples
 

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Unity.GraphToolkit.Editor;
 
 // ReSharper disable CheckNamespace
@@ -14,6 +15,14 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 	internal class StatechartDebugGraph : Graph
 	{
 		internal const string AssetExtension = "statechartdebug";
+
+		/// <summary>Reports that the graph is display only, since Graph Toolkit offers no read-only mode.</summary>
+		public override void OnGraphChanged(GraphLogger logger)
+		{
+			// A message without a node context is not drawn in the graph window, so it is pinned to the first node.
+			logger.LogWarning("Display only: rebuilt from the running chart each time B Graph opens it. " +
+			                  "Edits here do not change the game.", GetNodes().FirstOrDefault());
+		}
 	}
 
 	/// <summary>
