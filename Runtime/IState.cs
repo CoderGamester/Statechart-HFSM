@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 // ReSharper disable CheckNamespace
@@ -159,12 +160,29 @@ namespace GameLovers.StatechartMachine
 	{
 		/// <summary>
 		/// Blocks the state behaviour until the given async <paramref name="taskAwaitAction"/> is completed.
-		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked
+		/// It will return the created <see cref="ITransition"/> that will triggered as soon as the state is unblocked.
+		/// A task that throws is logged and still completes the state, so the chart never waits forever; handle
+		/// errors inside the task when a failure needs a different path. The chart resumes on the main thread.
 		/// </summary>
+		/// <param name="taskAwaitAction">The async work to await each time the state is entered.</param>
+		/// <returns>The transition taken when the task completes.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="taskAwaitAction"/> is null.</exception>
 		ITransition WaitingFor(Func<Task> taskAwaitAction);
 
-		/// <inheritdoc cref="WaitingFor(Func<Task>)"/>
+		/// <inheritdoc cref="WaitingFor(Func{Task})"/>
 		ITransition WaitingFor(Func<UniTask> taskAwaitAction);
+
+		/// <summary>
+		/// Same as <see cref="WaitingFor(Func{Task})"/>, but passes a token that is cancelled when the statechart is
+		/// reset or disposed, so long-running work can stop with the chart.
+		/// </summary>
+		/// <param name="taskAwaitAction">The async work to await each time the state is entered.</param>
+		/// <returns>The transition taken when the task completes.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="taskAwaitAction"/> is null.</exception>
+		ITransition WaitingFor(Func<CancellationToken, Task> taskAwaitAction);
+
+		/// <inheritdoc cref="WaitingFor(Func{CancellationToken, Task})"/>
+		ITransition WaitingFor(Func<CancellationToken, UniTask> taskAwaitAction);
 	}
 
 	/// <summary>

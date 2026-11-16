@@ -1,0 +1,28 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="GameFlow.uss" />
+    <ui:VisualElement name="root" class="gf-root">
+        <ui:Label text="Statechart · Game Flow" class="gf-title" />
+        <ui:Label text="Open Tools &gt; GameLovers &gt; Statechart Debugger to watch this game's states live." class="gf-hint" />
+        <ui:VisualElement class="gf-main">
+            <ui:VisualElement class="gf-column">
+                <ui:Label name="phase" text="Booting" class="gf-phase" />
+                <ui:Label name="detail" text="Loading" class="gf-detail" />
+                <ui:VisualElement name="stage" class="gf-stage">
+                    <ui:VisualElement name="player" class="gf-player" />
+                    <ui:Label name="waves" text="" class="gf-waves" />
+                </ui:VisualElement>
+                <ui:VisualElement class="gf-buttons">
+                    <ui:Button name="play" text="Play" class="gf-button" />
+                    <ui:Button name="jump" text="Jump" class="gf-button" />
+                    <ui:Button name="hit" text="Take hit" class="gf-button" />
+                    <ui:Button name="quit" text="Quit to menu" class="gf-button" />
+                    <ui:Button name="retry" text="Retry" class="gf-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="gf-column gf-activity">
+                <ui:Label text="Activity" class="gf-activity-title" />
+                <ui:Label name="activity" text="" class="gf-activity-log" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

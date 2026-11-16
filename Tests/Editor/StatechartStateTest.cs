@@ -105,10 +105,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		// ADMIT: Statechart.Run re-arms _isRunning, so a chart resumed after Pause processes triggers again
-		// instead of staying inert (Trigger early-returns while !_isRunning).
-		// RCR: Statechart.cs Run — delete `_isRunning = true;` → RED (after Pause the chart never resumes, so
-		// OnTransitionCall(1) is never received). Also reddens siblings, which all Run() first.
+		// ADMIT: Statechart.Run sets the running lifecycle, so a chart resumed after Pause processes triggers again
+		// instead of staying inert (Trigger early-returns while not running).
+		// RCR: Statechart.cs Run — delete `_lifecycle = Lifecycle.Running;` → RED (OnTransitionCall(0) never
+		// received). Also reddens siblings, which all Run() first. 2026-11-16
 		public void State_PauseRunStatechart_Success()
 		{
 			var statechart = new Statechart(SetupStateFlow);

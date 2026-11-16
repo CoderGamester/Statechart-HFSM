@@ -6,16 +6,12 @@ using System.Collections.Generic;
 namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc />
-	internal interface ITransitionInternal : ITransitionCondition
+	internal interface ITransitionInternal : ITransitionCondition, ITransitionEdge
 	{
 		/// <summary>
 		/// The current target state of this transition
 		/// </summary>
 		IStateInternal TargetState { get; }
-		/// <summary>
-		/// True if this transition has a condition to check, false otherwise 
-		/// </summary>
-		bool HasCondition { get; }
 		/// <summary>
 		/// Debug stack trace string
 		/// </summary>
@@ -44,6 +40,27 @@ namespace GameLovers.StatechartMachine.Internal
 		public string CreationStackTrace { get; private set; }
 		/// <inheritdoc />
 		public bool HasCondition => _condition.Count > 0;
+		/// <inheritdoc />
+		public IStateNode Source { get; }
+		/// <inheritdoc />
+		public IStatechartEvent Event { get; }
+		/// <inheritdoc />
+		public TransitionKind Kind { get; }
+
+		IStateNode ITransitionEdge.Target => TargetState;
+
+		public Transition(IStateNode source, TransitionKind kind, IStatechartEvent statechartEvent)
+		{
+			Source = source;
+			Kind = kind;
+			Event = statechartEvent;
+		}
+
+		/// <inheritdoc />
+		public override string ToString()
+		{
+			return $"{Source.Name} -({Event?.Name ?? Kind.ToString()})-> {TargetState?.Name ?? "(action only)"}";
+		}
 
 		/// <inheritdoc />
 		public bool CheckCondition()
@@ -72,7 +89,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if(condition == null)
 			{
-				throw new NullReferenceException("The transition cannot have a null condition");
+				throw new ArgumentNullException(nameof(condition), "The transition cannot have a null condition");
 			}
 
 #if UNITY_EDITOR || DEBUG
@@ -89,7 +106,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException("The transition cannot have a null OnTransition action");
+				throw new ArgumentNullException(nameof(action), "The transition cannot have a null OnTransition action");
 			}
 
 #if UNITY_EDITOR || DEBUG
@@ -106,7 +123,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (state == null)
 			{
-				throw new NullReferenceException("The transition cannot have a null target state");
+				throw new ArgumentNullException(nameof(state), "The transition cannot have a null target state");
 			}
 
 			TargetState = (IStateInternal) state;

@@ -1,90 +1,55 @@
-# GameLovers.Statechart - AI Agent Guide
+# GameLovers Statechart — Agent Guide
 
-> **Companion files**: `CLAUDE.md` wraps this file for Claude Code — edit `AGENTS.md`, not `CLAUDE.md`. `README.md` is the user-facing entry point.
+This guide adds package-specific rules to the host repository guide. Consumer usage belongs in `README.md`.
 
-## 1. Package Overview
-- **Package**: `com.gamelovers.statechart`
-- **Unity**: 2022.3+ (the only package in the family with a floor below 6000.0 — verify before assuming 6000.0-only APIs are safe here)
-- **Dependencies** (see `package.json`)
-  - `com.cysharp.unitask` (2.5.10): `ITaskWaitState.WaitingFor(Func<UniTask>)` overload
+## Scope
 
-Hierarchical State Machine (HFSM / Statechart, per the [UML spec](http://www.omg.org/spec/UML) and [statecharts.github.io](https://statecharts.github.io/what-is-a-statechart.html)) — states can nest, split into parallel regions, and run async waits, all defined once in a constructor setup closure with no further runtime mutation. Smallest package in the family: no `Editor/` assembly, no `Samples~/`, single `Runtime/` assembly.
+- Package: `com.gamelovers.statechart`; minimum Unity version and dependencies are authoritative in `package.json`. Supported streams are 6000.0, 6000.3 and 6000.6.
+- `GameLovers.Statechart` (runtime) implements hierarchical statecharts with nested and parallel regions, events, choices, callback waits, Task/UniTask waits, and the read-only topology, active-state and trace API.
+- `GameLovers.Statechart.Editor` holds the Statechart Debugger.
+- `Samples~/GameFlow` is the single package sample. This package is render-pipeline-neutral.
+- Public contracts live at `Runtime/`; implementations under `Runtime/Internal/` remain internal. `Runtime/AssemblyInfo.cs` grants internals to the Editor and Editor test assemblies only.
 
-## 2. Runtime Architecture (high level)
+## Statechart invariants
 
-### The chart itself
-- **`Statechart`** (`Runtime/Statechart.cs`, implements `IStatechart : IStateMachineDebug`) is the entry point. Construct with `new Statechart(Action<IStateFactory> setup)` — the setup closure runs immediately and defines every state and transition; there is no API to add states after construction. Throws `MissingMemberException` if the setup never calls `factory.Initial(...)`.
-  - `Run()` — starts/resumes execution from wherever the chart is anchored. No-op if already running.
-  - `Trigger(IStatechartEvent trigger)` — processes an event with run-to-completion semantics. **No-op if the chart isn't running** (`Pause()`d or never `Run()` called) — a common "my event did nothing" cause.
-  - `Pause()` — stops processing; `Run()` resumes from the same point.
-  - `Reset()` — jumps back to the initial state. Does **not** implicitly pause or resume; if the chart was waiting on an event, it needs a fresh `Run()` to continue after reset.
-  - `LogsEnabled` (from `IStateMachineDebug`) — per-chart debug logging toggle; `IState.LogsEnabled` is the same toggle per-state.
-  - `CurrentState` (string name) is exposed **only under `#if UNITY_EDITOR`** — do not reference it from a runtime code path that also needs to compile for a player build.
-  - In `#if UNITY_EDITOR || DEBUG`, every state's `Validate()` runs once at construction — this is where the "missing transition target" / "transition loop" exceptions below come from.
-- **`IStateFactory`** (`Runtime/IStateFactory.cs`) is passed into the setup closure — one factory instance per region (top-level chart, and one more per `Nest`/`Split` sub-region). Each factory method takes a `name` string (debug-only identity) and returns the state's own narrow interface:
+- A `Statechart` is fully defined by its constructor setup closure. Runtime mutation of the state graph is unsupported, and every region requires exactly one initial state. The read-only view (`IRegionNode`, `IStateNode`, `ITransitionEdge`) is implemented by the live `StateFactory`, states and `Transition` objects; do not reintroduce a parallel node graph. Each state records its edges through `StateInternal.CreateTransition`.
+- `Trigger` is a no-op until `Run()` and while paused. `Pause()` preserves the active position and stops a chain of automatic transitions mid-way when called from a callback.
+- Events are processed run to completion: an event triggered while `MoveNext` is processing is queued and drained after the current step. Do not reintroduce re-entrant processing.
+- `Reset()` returns to the initial state without exit callbacks or a run/pause change. It drops queued events and cancels the chart token, then starts a new one. Waits and tasks capture the token when they start and ignore their completion once it is cancelled; it is the only stale-completion guard. `Dispose()` cancels the same way and stops the chart for good.
+- Statechart events compare by generated instance id, not by name. Reuse one event instance for one logical event.
+- Event transitions on simple, wait, nest and split states may omit a target to run an action only; such an event leaves inner waits running. Initial, transition, choice, leave and completion transitions need a target. A choice with no satisfied condition remains in the choice state.
+- `Nest` completes one sequential child region. `Split` completes only after all parallel child regions finish.
+- `NestedStateData` separately controls whether leaving a nested region executes the parent nest state's exit callback and the child final state's enter callback. The plain setup-closure overload enables both; preserve the distinction when changing leave/completion behavior.
+- `Leave` exits exactly one region layer and bypasses the current nest/split completion transition.
+- `IWaitState` may process events and uses `IWaitActivity` completion. `ITaskWaitState` cannot process events while awaiting its task; ancestor exit waits for it and queues intervening events.
+- A faulted task completes its `TaskWait` state after the fault is reported. Task completions resume on the main thread, and a `Task` completing on the main thread resumes inline; keep `AwaitTask` rather than `AsUniTask`, which posts to a later frame.
+- When an active callback wait is abandoned by an ancestor region exit, complete its outstanding inner activities rather than leaving them dangling. Task waits instead delay the exit until the task completes.
+- Every observable step goes through `StateInternal.Trace` / `Statechart.Emit`. `LogsEnabled` formats those traces; do not add separate `Debug.Log` paths. With no `Traced` subscriber and logs off, nothing is formatted.
+- The runtime's only debugger hook is the Editor-only `Statechart.Created` event. `StatechartRegistry` and `StatechartExport` live in the Editor assembly; the registry holds charts weakly, records history as ids and text, and drops a chart on its `Disposed` trace.
+- Validation runs only under `UNITY_EDITOR || DEBUG`. Do not treat release-build absence of validation as a supported malformed graph.
 
-  | Factory method | Returns | Purpose |
-  |---|---|---|
-  | `Initial(name)` | `IInitialState` | Entry point of the region. Exactly one per region. |
-  | `Final(name)` | `IFinalState` | Marks the region complete. |
-  | `State(name)` | `ISimpleState` | Blocks until an `Event(...)` transition fires. |
-  | `Transition(name)` | `ITransitionState` | Non-blocking; falls through to its target immediately. |
-  | `Nest(name)` | `INestState` | Opens one new nested (sequential) region. |
-  | `Choice(name)` | `IChoiceState` | Non-blocking; picks among `Transition().Condition(...)` branches. |
-  | `Wait(name)` | `IWaitState` | Blocks on `IWaitActivity` completion (and/or an event). |
-  | `TaskWait(name)` | `ITaskWaitState` | Blocks on a `Task`/`UniTask`; cannot process events while waiting. |
-  | `Split(name)` | `ISplitState` | Opens two-or-more new nested **parallel** regions. |
-  | `Leave(name)` | `ILeaveState` | Like `Final`, but its transition targets a state in an **ancestor** region, jumping out of the current `Nest`/`Split` by exactly one layer. |
+## Change placement
 
-### State capability interfaces (`Runtime/IState.cs`)
-Every concrete state interface above is composed from these narrower capability interfaces — check which ones a state implements to know what it can do:
-- `IStateEnter.OnEnter(Action)` / `IStateExit.OnExit(Action)` — lifecycle callbacks.
-- `IStateTransition.Transition()` → `ITransition` — unconditional transition (used by `Initial`/`Transition`/`Leave` states).
-- `IStateEvent.Event(IStatechartEvent)` → `ITransition` — event-triggered transition (used by `State`/`Nest`/`Wait`/`Split` states).
-- `ITransition.OnTransition(Action)` (chainable) + `.Target(IState)` (terminal — every transition must call this or `Statechart`'s validation throws).
-- `ITransitionCondition : ITransition` adds `.Condition(Func<bool>)` — used exclusively by `IChoiceState.Transition()`; a choice with a failing condition does not transition (evaluate carefully — a choice state with no satisfied condition stalls the chart there).
+- A new state type requires a public capability-composed interface, an internal implementation with a `StateKind` value that creates its transitions with `CreateTransition`, a factory method on `IStateFactory`, and the matching `StateFactory` implementation. Update `Editor/StatechartExport` and the debugger views if the kind needs special drawing.
+- Keep the public surface expressed through narrow capability interfaces in `Runtime/IState.cs`; consumers should not depend on internal concrete states.
+- Preserve the existing Task and UniTask overloads, with and without a `CancellationToken`, when changing async waiting.
+- Tools read the chart only through `RootRegion`, `GetActiveStates`, `IsActive` and `Traced`, and discover it through `Statechart.Created`. Do not add view-specific hooks to the runtime.
+- Sample code stays in `Samples~/GameFlow` with its own asmdef; package assemblies never reference it. After changing `Samples~`, refresh and validate the imported copy as the host guide requires.
+- Before changing anything under `Tests/`, read `Tests/AGENTS.md`.
 
-### Nesting and parallelism
-- **`INestState.Nest(Action<IStateFactory> | NestedStateData)`** opens a new sequential sub-region; its returned `ITransition` fires once that sub-region reaches its `Final`. The `NestedStateData` overload (`Setup` + `ExecuteExit` + `ExecuteFinal` bools) controls whether the *parent* nest state's own `OnExit` and the *sub-region's* `IFinalState.OnEnter` actually run when leaving via a `Leave` state from inside vs. via normal completion — the plain `Action<IStateFactory>` overload defaults both to `true`.
-- **`ISplitState.Split(params Action<IStateFactory>[] | NestedStateData[])`** opens N parallel sub-regions simultaneously; its `ITransition` fires only once **all** sub-regions reach their own `Final`.
-- **`ILeaveState`** exits a `Nest`/`Split` region early, targeting a state in the parent region directly — bypasses the nest/split's own completion transition. Can only jump one region layer (an inner `Leave` inside a doubly-nested region still only reaches its immediate parent, not the top level).
+## Statechart Debugger
 
-### Waiting states
-- **`IWaitState.WaitingFor(Action<IWaitActivity>)`** — the action receives an `IWaitActivity` (`Runtime/IWaitActivity.cs`); call `.Complete()` when the awaited work finishes, or `.Split()` first to fan out into multiple sub-activities whose *own* `.Complete()` calls all must return true before the parent completes. A `Wait` state also still processes `Event(...)` transitions (checked after `WaitingFor` since concurrency needs `WaitingFor` resolved first) — the doc comment on `IWaitState` explicitly notes this ordering. If a wait state is the active state when an ancestor `Nest`/`Split` exits, it force-completes itself and all inner activities rather than leaving them dangling.
-- **`ITaskWaitState.WaitingFor(Func<Task> | Func<UniTask>)`** — blocks on true async work. Unlike `IWaitState`, **cannot process `Event(...)` transitions while waiting** (no `IStateEvent` in its interface composition) — if an ancestor region exits mid-wait, the exit itself is paused and any events that arrive during the wait are queued rather than dropped, to avoid a concurrency bottleneck.
+- `StatechartDebuggerWindow` is a UI Toolkit `EditorWindow` under `Tools/GameLovers/Statechart Debugger`. Its toolbar acts on the selected live chart (Run, Pause, Reset); it never builds a throwaway chart.
+- `LiveChartView` and `TreeTraceView` read the same three sources: `IStatechart.RootRegion`, `GetActiveStates`, and `StatechartRegistry.Entry.History`. A view must not need its own runtime data. Toolbar toggles named after each view turn it on or off.
+- `StatechartRegistry` subscribes to `Statechart.Created`. History records keep state ids and paths, never `IStateNode` references: a node is a live state, so holding one keeps its chart alive.
+- The window refreshes on a 100 ms schedule and repaints views only when `StatechartRegistry.Version` changes. Keep per-refresh work proportional to the chart size and free of allocations beyond the active list.
+- Styles live in `StatechartDebugger.uss`, loaded by package path. Use colors that read in both Editor themes.
+- A Graph Toolkit view was tried and removed: on 6000.6 its flat graph hid nest and split hierarchy, and the API has no read-only or container node. Do not reintroduce it without those capabilities.
 
-### Events
-- **`IStatechartEvent`** (`Runtime/StatechartEvent.cs`) — equality is by an auto-incrementing `uint Id` assigned at construction, **not** by `Name`. Two `new StatechartEvent("Jump")` instances are never equal to each other; keep one instance per logical event and reuse it across every `.Event(theSameInstance)` call site that should respond to it.
+## Verification and documentation
 
-## 3. Key Directories / Files
-- **Public interfaces** (root of `Runtime/`): `IState.cs` (all state-capability + concrete-state interfaces + `NestedStateData`), `ITransition.cs`, `IStateFactory.cs`, `IWaitActivity.cs`, `Statechart.cs` (+ `IStatechart`/`IStateMachineDebug`), `StatechartEvent.cs` (+ `IStatechartEvent`).
-- **`Runtime/Internal/*`** — concrete state implementations (`InitialState`, `FinalState`, `SimpleState`, `TransitionState`, `NestState`, `SplitState`, `ChoiceState`, `WaitState`, `TaskWaitState`, `LeaveState`), `StateFactory`, `Transition`, `InnerStateData`, `StatechartUtils`. All `internal` — not part of the public surface; consumers only ever see the interfaces above.
-- **Tests**: `Tests/Editor/*` (one asmdef, `GameLovers.Statechart.Editor.Tests`) — `StatechartTest.cs` (core lifecycle + validation-exception coverage), `StatechartStateTest.cs`, `StatechartTransitionTest.cs`, `StatechartChoiceTest.cs`, `StatechartNestTest.cs`, `StatechartSplitTest.cs`, `StatechartWaitTest.cs`, `StatechartTaskWaitTest.cs`, `StatechartLeaveTest.cs`, `StatechartNestSplit_IntegrationTest.cs`, `IMockCaler.cs` (mocked-callback interface used across the suite via NSubstitute). Before reading, editing, or creating any file in `Tests/`, you **MUST** read [`Tests/AGENTS.md`](Tests/AGENTS.md) first.
-- **No `Editor/` assembly, no `Samples~/`, no `docs/`** — this package's entire surface is the interfaces above; there is no editor tooling and nothing to import as a sample.
-
-## 4. Important Behaviors / Gotchas
-- **Setup-time validation, not always-on**: the exceptions below (`MissingMemberException`, `InvalidOperationException`) only fire from the `#if UNITY_EDITOR || DEBUG` validation pass in the `Statechart` constructor — a malformed chart in a release build without `DEBUG` defined will not be caught the same way. Always validate in-editor / in tests before shipping a chart's setup.
-- **`Trigger` is a no-op unless running**: calling `Trigger(...)` before the first `Run()`, or after `Pause()`, silently does nothing — it does not queue the event for later.
-- **Event identity is per-instance, not per-name**: see `IStatechartEvent` above — a fresh `new StatechartEvent("X")` never equals a previously created `"X"` event. Store event instances as fields/constants, not locals recreated per call.
-- **`ITaskWaitState` cannot receive events while waiting**; `IWaitState` can, but only after its `WaitingFor` activities resolve first in a concurrent scenario. Picking the wrong one of these two for a state that needs to react to an event mid-wait is a common design mistake.
-- **`ILeaveState` only jumps one region layer** — from inside a doubly-nested region, a `Leave` still only reaches the immediate parent, not further up.
-- **`CurrentState` is Editor/DEBUG-only surface** on `Statechart` — don't wire game logic to it.
-
-## 5. Coding Standards (Unity 6 / C# 9.0)
-- **C#**: C# 9.0 syntax; explicit namespaces (`GameLovers.StatechartMachine` for Runtime, `GameLoversEditor.StatechartMachine.Tests` for Tests); no global usings.
-- **Assemblies**: `Runtime/GameLovers.Statechart.asmdef` has no Editor/UnityEditor reference — this package has no Editor assembly at all. Keep everything under `Runtime/Internal/` truly `internal`; the public surface is exactly the interfaces in section 2/3.
-- **Async**: `Cysharp.Threading.Tasks` (UniTask) only appears in `ITaskWaitState.WaitingFor(Func<UniTask>)` — the plain-`Task` overload exists for consumers who don't want the UniTask dependency in their own state-setup code (the package dependency itself is unconditional either way).
-
-## 6. External Package Sources (for API lookups)
-- UniTask: `Library/PackageCache/com.cysharp.unitask/`
-
-## 7. Common change workflows
-- **Add a new state type**: define its public capability-composed interface in `Runtime/IState.cs`, add the corresponding `internal` implementation under `Runtime/Internal/`, and add the factory method to `IStateFactory` + `Runtime/Internal/StateFactory.cs`. Add test coverage under `Tests/Editor/` following the existing `Statechart<Type>Test.cs` naming.
-- **Change validation behavior**: the per-state `Validate()` calls happen in `Statechart`'s constructor under `#if UNITY_EDITOR || DEBUG` — keep new validation failures as exceptions thrown from state `Validate()` implementations under `Runtime/Internal/`, matching the existing `MissingMemberException`/`InvalidOperationException` pattern.
-
-## 8. Update Policy
-Update this file when:
-- Public API changes (`IStatechart`, any state-capability interface in `IState.cs`, `IStateFactory`, `ITransition`, `IWaitActivity`, `IStatechartEvent`)
-- Validation/exception behavior changes in the `Statechart` constructor's setup pass
-- Nesting/splitting/leaving semantics change (region completion rules, `NestedStateData` flag behavior)
-- Dependencies in `package.json` change (cross-check this file and `README.md` for stale references)
+- Test lifecycle, run-to-completion ordering, transition target validation, nested/split completion, leave depth, waiting/event ordering, and trace order when those areas change.
+- Validation tests must run with Editor or DEBUG behavior enabled and must not imply equivalent release-build enforcement.
+- Debugger and sample changes need a fresh Play-mode capture with the sample running and the affected view visible; green tests do not prove the views.
+- Prefer the local UniTask package source under `Library/PackageCache/` for external API questions.
+- Update `README.md` for public statechart semantics and this guide only for durable invariants or test conventions.

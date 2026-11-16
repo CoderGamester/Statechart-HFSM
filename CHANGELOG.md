@@ -4,6 +4,42 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-11-17
+
+**New**:
+- **Statechart Debugger**: *Tools > GameLovers > Statechart Debugger* shows any running chart live, with Run, Pause and Reset controls and two views that can each be turned on or off: a live chart of nested boxes with parallel regions as lanes, and a state tree with the latest 256 trace steps. The **Copy** menu exports a Mermaid diagram, the active state paths or the trace.
+- **Chart view**: `IStatechart.RootRegion` exposes the chart's structure through `IRegionNode`, `IStateNode` and `ITransitionEdge`, and `GetActiveStates` and the allocation-free `IsActive` report which states are active. The view is the live chart itself, so it costs nothing to build.
+- **Trace**: `IStatechart.Traced` publishes every event, exit, transition, enter, fault and lifecycle step in execution order as a `StatechartTrace`; nothing is allocated while no one listens.
+- **Lifecycle**: a `Statechart(string name, Action<IStateFactory> setup)` constructor, `Name` and `IsRunning`, and `IDisposable` support. `Dispose()` stops the chart for good, cancels token-aware tasks and removes it from the debugger; `Run()` after it throws `ObjectDisposedException`.
+- **Cancellable task waits**: `ITaskWaitState.WaitingFor` overloads receive a `CancellationToken` that `Reset()` and `Dispose()` cancel.
+- **Game Flow sample**: one statechart drives a small game loop that uses every state kind, with on-screen controls, meant to be watched in the Statechart Debugger.
+
+**Changed**:
+- The minimum Unity version is now 6000.0 (was 2022.3); 6000.0.x, 6000.3.x and 6000.6.x are the supported streams.
+- Requires UniTask 2.5.11 (was 2.5.10), the first version whose Editor code compiles on Unity 6000.6, and the built-in UIElements module used by the debugger and the sample.
+- Events triggered while another event is being processed, for example from an enter callback, are now queued and processed right after it (run to completion) instead of running against the previous state.
+- `Reset()` now drops queued events and abandons pending waits and tasks, so their late completion no longer moves the chart.
+- `LogsEnabled` now writes one trace line per step, such as `[Statechart 'Player'] Idle -> Jumping on 'Jump'`.
+- Null arguments now throw `ArgumentNullException`, and a setup without an initial state throws `InvalidOperationException` instead of `MissingMemberException`.
+
+**Removed**:
+- The Editor-only `Statechart.CurrentState`.
+
+**Migration**:
+- Replace `CurrentState` with `GetActiveStates`, `IsActive` or the Statechart Debugger.
+- Custom `IStatechart` implementations must add the new members: `Name`, `IsRunning`, `RootRegion`, `Traced`, `GetActiveStates`, `IsActive` and `Dispose`.
+- Catch `InvalidOperationException` instead of `MissingMemberException` for a setup without an initial state.
+
+**Fixed**:
+- A `TaskWait` state whose task throws no longer blocks the chart and its parent splits forever; the fault is logged and the state completes.
+- `TaskWait` states now resume the chart on the main thread, and a `Task` completing on the main thread resumes it in the same frame.
+- Pausing or resetting the chart from a callback now stops a chain of automatic transitions.
+- An action-only event on a nest or split state no longer force-completes the waits inside it.
+- Creation stack traces in error logs now start at the code that declared the failing state, and enter-callback errors no longer report themselves as exit errors.
+
+**Docs**:
+- Rewrote the README with state kinds, runtime semantics, the observe API, the debugger and the sample.
+
 ## [0.9.5] - 2026-08-04
 
 **Changed**:

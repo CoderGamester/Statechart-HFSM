@@ -17,16 +17,14 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		private IMockCaller _caller;
 		private IWaitActivity _activity;
 		private NestedStateData _nestedStateData;
-		private bool _blocker;
-		private bool _done;
+		private TaskCompletionSource<bool> _taskSource;
 
 		[SetUp]
 		public void Init()
 		{
 			_caller = Substitute.For<IMockCaller>();
 			_nestedStateData = new NestedStateData(factory => SetupWaitState(factory, waitActivity => _activity = waitActivity));
-			_blocker = true;
-			_done = false;
+			_taskSource = new TaskCompletionSource<bool>();
 		}
 
 		[Test]
@@ -62,7 +60,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// RCR: SplitState.cs DelayForceComplete — `taskState.EnqueuEvent(statechartEvent);` to
 		// `taskState.EnqueuEvent(null);` → RED (after the task completes the nest never takes its event
 		// transition; OnTransitionCall(3) is never received). Also reddens the Split sibling below.
-		public async Task NestedState_TaskWaitStateInner_EventTrigger_QueueEvent()
+		public void NestedState_TaskWaitStateInner_EventTrigger_QueueEvent()
 		{
 			_nestedStateData.Setup = SetupTaskWaitState;
 
@@ -82,9 +80,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			_blocker = false;
-
-			await YieldWaitTask();
+			_taskSource.SetResult(true);
 
 			_caller.Received(2).OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -131,7 +127,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// RCR: SplitState.cs OnTrigger — `if(_isPaused && !IsAllCompleted())` to `if(false)` → RED (the
 		// event transition fires instead: OnTransitionCall(3) received, (5) never). Isolated — the only
 		// test whose split is already paused when the event arrives.
-		public async Task SplitState_LeaveTaskWaitStateInner_EventTrigger_QueueEvent_LeaveExitSuccess()
+		public void SplitState_LeaveTaskWaitStateInner_EventTrigger_QueueEvent_LeaveExitSuccess()
 		{
 			_nestedStateData.Setup = SetupTaskWaitState;
 
@@ -152,9 +148,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			_blocker = false;
-
-			await YieldWaitTask();
+			_taskSource.SetResult(true);
 
 			_caller.Received(3).OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -201,7 +195,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// RCR: SplitState.cs DelayForceComplete — `_isPaused = true;` to `_isPaused = false;` → RED (the
 		// split completes before the task finishes: OnTransitionCall(3) is received in the mid-task
 		// assertion block). Also reddens the Nest and Leave task siblings.
-		public async Task SplitState_TaskWaitStateInner_EventTrigger_QueueEvent_CompleteSuccess()
+		public void SplitState_TaskWaitStateInner_EventTrigger_QueueEvent_CompleteSuccess()
 		{
 			_nestedStateData.Setup = SetupTaskWaitState;
 
@@ -221,9 +215,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(1);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			_blocker = false;
-
-			await YieldWaitTask();
+			_taskSource.SetResult(true);
 
 			_caller.Received(3).OnTransitionCall(0);
 			_caller.DidNotReceive().OnTransitionCall(1);
@@ -239,24 +231,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 		#region Setups
 
-		private async Task TaskWaitAction()
+		private Task TaskWaitAction()
 		{
-			while (_blocker)
-			{
-				await Task.Yield();
-			}
-
-			_done = true;
-		}
-
-		private async Task YieldWaitTask()
-		{
-			while (!_done)
-			{
-				await Task.Yield();
-			}
-
-			await Task.Yield();
+			return _taskSource.Task;
 		}
 
 		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)

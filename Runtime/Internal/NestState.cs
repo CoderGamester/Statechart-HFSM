@@ -13,6 +13,9 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Nest;
+
+		/// <inheritdoc />
 		public override void Validate()
 		{
 #if UNITY_EDITOR || DEBUG

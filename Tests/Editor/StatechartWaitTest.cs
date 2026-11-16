@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using GameLovers.StatechartMachine;
 using NSubstitute;
 using NUnit.Framework;
@@ -27,7 +26,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// IsCompleted, so the chart parks in the state until the _activity is completed from outside.
 		// RCR: WaitState.cs OnTrigger — change `return _waitingActivity.IsCompleted ? _transition : null;` to
 		// `return null;` → RED (Complete() no longer advances; OnTransitionCall(1) never received).
-		public async Task SimpleTest()
+		public void SimpleTest()
 		{
 			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => _activity = waitActivity));
 
@@ -41,7 +40,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			await Task.Yield(); // To avoid race conditions with the _activity creation
 			_activity.Complete();
 
 			_caller.Received().OnTransitionCall(1);
@@ -53,10 +51,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: WaitActivity.AreInnerCompleted requires EVERY split child to report IsCompleted before the
 		// parent _activity counts as done, so completing both children releases the wait.
-		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!_activity.IsCompleted)` to `if (true)` (no
+		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!activity.IsCompleted)` to `if (true)` (no
 		// child ever counts as complete) → RED (the chart never advances even with both completed). The
 		// on-hold sibling stays green: it expects no advance either way.
-		public async Task SplitActivity_CompleteBoth_Success()
+		public void SplitActivity_CompleteBoth_Success()
 		{
 			IWaitActivity activitySplit = null;
 
@@ -72,7 +70,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			await Task.Yield(); // To avoid race conditions with the _activity creation
 			activitySplit = _activity.Split();
 			_activity.Complete();
 
@@ -92,11 +89,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: WaitActivity.IsCompleted ANDs the parent's own _completed flag with AreInnerCompleted(), so
 		// one finished child out of two leaves the chart waiting rather than advancing early.
-		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!_activity.IsCompleted)` to `if (false)` so
+		// RCR: WaitActivity.cs AreInnerCompleted — change `if (!activity.IsCompleted)` to `if (false)` so
 		// every child counts as done → RED (the chart advances with one child still outstanding). Dropping
 		// the inner term from IsCompleted instead does NOT redden this: the parent's own _completed is what
 		// the surviving term reads, and Complete() has already set it.
-		public async Task SplitActivity_CompleteOnlyOneActivity_OnHold()
+		public void SplitActivity_CompleteOnlyOneActivity_OnHold()
 		{
 			var statechart = new Statechart(factory => SetupWaitState(factory, waitActivity => _activity = waitActivity));
 
@@ -110,7 +107,6 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			await Task.Yield(); // To avoid race conditions with the _activity creation
 			_activity.Split();
 			_activity.Complete();
 
@@ -167,7 +163,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 				var final = SetupSimpleFlow(factory, waiting);
 
 				waiting.OnEnter(() => _caller.StateOnEnterCall(0));
-				waiting.WaitingFor(_activity => {}).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
+				waiting.WaitingFor(waitActivity => { }).OnTransition(() => _caller.OnTransitionCall(1)).Target(final);
 				waiting.Event(_event).OnTransition(() => _caller.OnTransitionCall(2));
 				waiting.OnExit(() => _caller.StateOnExitCall(0));
 			});

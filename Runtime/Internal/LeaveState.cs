@@ -10,12 +10,17 @@ namespace GameLovers.StatechartMachine.Internal
 	{
 		private readonly IList<Action> _onEnter = new List<Action>();
 		
-		/// <summary>The transition this leave state hands back to the parent region, set when the state is configured.</summary>
+		/// <summary>
+		/// The transition this leave state hands back to the parent region, set when the state is configured.
+		/// </summary>
 		internal ITransitionInternal LeaveTransition { get; private set; }
 
 		public LeaveState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
 		}
+
+		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Leave;
 
 		/// <inheritdoc />
 		public override void Enter()
@@ -59,7 +64,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);
@@ -73,7 +78,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new InvalidOperationException($"State {Name} already has a transition defined");
 			}
 
-			LeaveTransition = new Transition();
+			LeaveTransition = CreateTransition(TransitionKind.Leave);
 
 			return LeaveTransition;
 		}

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 // ReSharper disable CheckNamespace
@@ -6,25 +7,21 @@ using UnityEngine;
 namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc cref="IState"/>
-	internal interface IStateInternal : IState, IEquatable<IStateInternal>
+	internal interface IStateInternal : IState, IStateNode, IEquatable<IStateInternal>
 	{
-		/// <summary>
-		/// The unique value identifying this state
-		/// </summary>
-		uint Id { get; }
-		/// <summary>
-		/// The string representation identifying this state
-		/// </summary>
-		string Name { get; }
 		/// <summary>
 		/// The layer in the nested setup this state is in. If in the root then the value will be 0
 		/// </summary>
 		uint RegionLayer { get; }
 		/// <summary>
+		/// The factory that created this state, identifying its region
+		/// </summary>
+		IStateFactoryInternal Factory { get; }
+		/// <summary>
 		/// The stack trace when this setup was created. Relevant for debugging purposes
 		/// </summary>
 		string CreationStackTrace { get; }
-		
+
 		/// <summary>
 		/// Triggers the given <paramref name="statechartEvent"/> as input to the <see cref="IStatechart"/> and returns
 		/// the processed <see cref="IStateInternal"/> as an output
@@ -39,6 +36,14 @@ namespace GameLovers.StatechartMachine.Internal
 		/// </summary>
 		void Exit();
 		/// <summary>
+		/// Traces and runs <see cref="Enter"/>, reporting any exception instead of throwing it
+		/// </summary>
+		void EnterSafely(IStatechartEvent statechartEvent);
+		/// <summary>
+		/// Traces and runs <see cref="Exit"/>, reporting any exception instead of throwing it
+		/// </summary>
+		void ExitSafely(IStatechartEvent statechartEvent);
+		/// <summary>
 		/// Validates this state to any potential bad setup schemes. Relevant to debug purposes.
 		/// It requires the <see cref="IStatechart"/> to run at runtime.
 		/// </summary>
@@ -52,6 +57,9 @@ namespace GameLovers.StatechartMachine.Internal
 
 		private static uint _idRef;
 
+		private readonly List<Transition> _transitions = new List<Transition>();
+		private string _path;
+
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
 		/// <inheritdoc />
@@ -59,12 +67,24 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public string Name { get; }
 		/// <inheritdoc />
+		public abstract StateKind Kind { get; }
+		/// <inheritdoc />
 		public uint RegionLayer => _stateFactory.RegionLayer;
 		/// <inheritdoc />
+		public IStateFactoryInternal Factory => _stateFactory;
+		/// <inheritdoc />
 		public string CreationStackTrace { get; }
+		/// <inheritdoc />
+		public IRegionNode Region => _stateFactory;
+		/// <inheritdoc />
+		public string Path => _path ??= Region.Owner == null ? Name : $"{Region.Owner.Path}/{Name}";
+		/// <inheritdoc />
+		public virtual IReadOnlyList<IRegionNode> Regions => Array.Empty<IRegionNode>();
+		/// <inheritdoc />
+		public IReadOnlyList<ITransitionEdge> Transitions => _transitions;
 
-		/// <summary>True when either this state or its owning statechart has logging switched on.</summary>
-		protected bool IsStateLogsEnabled => LogsEnabled || _stateFactory.Data.Statechart.LogsEnabled;
+		/// <summary>The statechart that owns this state.</summary>
+		protected Statechart Chart => _stateFactory.Data.Statechart;
 
 		protected StateInternal(string name, IStateFactoryInternal stateFactory)
 		{
@@ -85,11 +105,6 @@ namespace GameLovers.StatechartMachine.Internal
 
 			if (transition == null)
 			{
-				if (IsStateLogsEnabled)
-				{
-					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{statechartEvent?.Name}' : ## STOP ## '{Name}'");
-				}
-				
 				return null;
 			}
 
@@ -97,27 +112,51 @@ namespace GameLovers.StatechartMachine.Internal
 
 			if (Equals(nextState))
 			{
-				if (IsStateLogsEnabled)
-				{
-					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{statechartEvent?.Name}' : " +
-					          $"'{Name}' -> '{Name}' because => {GetType().UnderlyingSystemType.Name}");
-				}
-				
 				return nextState;
 			}
 
 			if (nextState == null)
 			{
-				TriggerTransition(transition, statechartEvent?.Name);
+				TriggerTransition(transition, statechartEvent);
 
 				return null;
 			}
 
-			TriggerExit();
-			TriggerTransition(transition, statechartEvent?.Name);
-			TriggerEnter(nextState);
+			ExitSafely(statechartEvent);
+			TriggerTransition(transition, statechartEvent);
+			nextState.EnterSafely(statechartEvent);
 
 			return nextState;
+		}
+
+		/// <inheritdoc />
+		public void EnterSafely(IStatechartEvent statechartEvent)
+		{
+			Trace(StatechartTraceKind.StateEntered, null, statechartEvent);
+
+			try
+			{
+				Enter();
+			}
+			catch (Exception e)
+			{
+				ReportFault(e, $"Exception in the state '{Name}', OnEnter() actions.", CreationStackTrace);
+			}
+		}
+
+		/// <inheritdoc />
+		public void ExitSafely(IStatechartEvent statechartEvent)
+		{
+			Trace(StatechartTraceKind.StateExited, null, statechartEvent);
+
+			try
+			{
+				Exit();
+			}
+			catch (Exception e)
+			{
+				ReportFault(e, $"Exception in the state '{Name}', OnExit() actions.", CreationStackTrace);
+			}
 		}
 
 		/// <inheritdoc />
@@ -152,79 +191,64 @@ namespace GameLovers.StatechartMachine.Internal
 		public abstract void Validate();
 
 		/// <summary>
+		/// Creates an outgoing transition of this state and records it in <see cref="Transitions"/>.
+		/// </summary>
+		protected Transition CreateTransition(TransitionKind kind, IStatechartEvent statechartEvent = null)
+		{
+			var transition = new Transition(this, kind, statechartEvent);
+
+			_transitions.Add(transition);
+
+			return transition;
+		}
+
+		/// <summary>
 		/// Returns the transition this state takes for the given event, or null when it does not handle it.
 		/// </summary>
 		protected abstract ITransitionInternal OnTrigger(IStatechartEvent statechartEvent);
 
-		private void TriggerEnter(IStateInternal state)
+		/// <summary>
+		/// Publishes a trace about this state when the chart has a listener or this state's logs are enabled.
+		/// </summary>
+		protected void Trace(StatechartTraceKind kind, IStateNode target, IStatechartEvent statechartEvent,
+		                     Exception exception = null)
 		{
-			try
-			{
-				if (IsStateLogsEnabled)
-				{
-					Debug.Log($"({state.GetType().UnderlyingSystemType.Name}) - Entering '{state.Name}'");
-				}
-				state.Enter();
-			}
-			catch (Exception e)
-			{
-				var finalMessage = "";
-#if UNITY_EDITOR || DEBUG
-				finalMessage = $"\nStackTrace log of '{state.Name}' state creation bellow.\n{CreationStackTrace}";
-#endif
+			var chart = Chart;
 
-				Debug.LogError($"Exception in the state '{state.Name}', OnExit() actions.\n" +
-					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
-				Debug.LogException(e);
+			if (!chart.HasTraceListeners && !LogsEnabled)
+			{
+				return;
 			}
+
+			chart.Emit(new StatechartTrace(chart, kind, this, target, statechartEvent, exception), LogsEnabled);
 		}
 
-		private void TriggerExit()
+		/// <summary>
+		/// Logs a user-code exception with the setup stack trace that declared the failing element, and traces it.
+		/// </summary>
+		protected void ReportFault(Exception exception, string message, string creationStackTrace)
 		{
-			try
-			{
-				if(IsStateLogsEnabled)
-				{
-					Debug.LogFormat($"({GetType().UnderlyingSystemType.Name}) - Exiting '{Name}'");
-				}
-				Exit();
-			}
-			catch(Exception e)
-			{
-				var finalMessage = "";
+			var finalMessage = "";
 #if UNITY_EDITOR || DEBUG
-				finalMessage = $"\nStackTrace log of '{Name}' state creation bellow.\n{CreationStackTrace}";
+			finalMessage = $"\nStackTrace log of the failing element's creation below.\n{creationStackTrace}";
 #endif
-
-				Debug.LogError($"Exception in the state '{Name}', OnExit() actions.\n" +
-					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
-				Debug.LogException(e);
-			}
+			Debug.LogError($"{message}\n-->> Check the exception log after this one for more details <<-- {finalMessage}");
+			Debug.LogException(exception);
+			Trace(StatechartTraceKind.Faulted, null, null, exception);
 		}
 
-		private void TriggerTransition(ITransitionInternal transition, string eventName)
+		private void TriggerTransition(ITransitionInternal transition, IStatechartEvent statechartEvent)
 		{
+			Trace(StatechartTraceKind.Transition, transition.TargetState, statechartEvent);
+
 			try
 			{
-				if (IsStateLogsEnabled)
-				{
-					var targetState = transition.TargetState?.Name ?? "only invokes OnTransition()";
-					
-					Debug.Log($"({GetType().UnderlyingSystemType.Name}) - '{eventName}' : '{Name}' -> '{targetState}'");
-				}
-				
 				transition.TriggerTransition();
 			}
 			catch (Exception e)
 			{
-				var finalMessage = "";
-#if UNITY_EDITOR || DEBUG
-				finalMessage = $"\nStackTrace log of this transition creation bellow.\n{transition.CreationStackTrace}";
-#endif
-
-				Debug.LogError($"Exception in the transition '{Name}' -> '{transition.TargetState?.Name}'" +
-					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
-				Debug.LogException(e);
+				ReportFault(e, $"Exception in the transition '{Name}' -> '{transition.TargetState?.Name}'.",
+					transition.CreationStackTrace);
 			}
 		}
 	}

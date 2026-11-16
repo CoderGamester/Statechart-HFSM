@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Threading;
 
 // ReSharper disable CheckNamespace
 
@@ -13,6 +13,7 @@ namespace GameLovers.StatechartMachine.Internal
 		private IWaitActivityInternal _waitingActivity;
 		private Action<IWaitActivity> _waitAction;
 		private bool _triggered;
+		private CancellationToken _token;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -33,11 +34,15 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Wait;
+
+		/// <inheritdoc />
 		public override void Enter()
 		{
 			// It needs to create a new activity everytime on to make sure old activities don't override new ones
 			_waitingActivity = new WaitActivity(OnActivityComplete);
 			_triggered = false;
+			_token = Chart.CancellationToken;
 
 			for (int i = 0; i < _onEnter.Count; i++)
 			{
@@ -89,7 +94,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);
@@ -100,7 +105,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnExit action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnExit action");
 			}
 
 			_onExit.Add(action);
@@ -111,10 +116,10 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (statechartEvent == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null event");
+				throw new ArgumentNullException(nameof(statechartEvent), $"The state {Name} cannot have a null event");
 			}
 
-			var transition = new Transition();
+			var transition = CreateTransition(TransitionKind.Event, statechartEvent);
 
 			_events.Add(statechartEvent, transition);
 
@@ -124,15 +129,16 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public ITransition WaitingFor(Action<IWaitActivity> waitAction)
 		{
-			_waitAction = waitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
-			_transition = new Transition();
+			_waitAction = waitAction ?? throw new ArgumentNullException(nameof(waitAction), $"The state {Name} cannot have a null wait action");
+			_transition = CreateTransition(TransitionKind.Completion);
 
 			return _transition;
 		}
 
 		private void OnActivityComplete(uint id)
 		{
-			if (id == _waitingActivity.Id)
+			// A completion that arrives after the chart was reset or disposed belongs to an abandoned wait.
+			if (id == _waitingActivity.Id && !_token.IsCancellationRequested)
 			{
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
@@ -154,34 +160,22 @@ namespace GameLovers.StatechartMachine.Internal
 			if (!_triggered)
 			{
 				_triggered = true;
-				InnerWait(statechartEvent?.Name);
+				InnerWait();
 			}
 
 			return _waitingActivity.IsCompleted ? _transition : null;
 		}
 
-		private void InnerWait(string eventName)
+		private void InnerWait()
 		{
 			try
 			{
-				if (IsStateLogsEnabled)
-				{
-					Debug.Log($"'{eventName}' event triggers the wait method '{_waitAction.Method.Name}'" +
-							  $"from the object {_waitAction.Target} in the state {Name}");
-				}
 				_waitAction(_waitingActivity);
 			}
 			catch (Exception e)
 			{
-				var finalMessage = "";
-#if UNITY_EDITOR || DEBUG
-				finalMessage = $"\nStackTrace log of '{Name}' state creation bellow.\n{CreationStackTrace}";
-#endif
-
-				Debug.LogError($"Exception in the state '{Name}', when calling the wait action {_waitAction.Method.Name}" +
-					$" from the object {_waitAction.Target}.\n" +
-					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
-				Debug.LogException(e);
+				ReportFault(e, $"Exception in the state '{Name}', when calling the wait action " +
+					$"{_waitAction.Method.Name} from the object {_waitAction.Target}.", CreationStackTrace);
 			}
 		}
 	}
