@@ -20,6 +20,9 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Leave;
+
+		/// <inheritdoc />
 		public override void Enter()
 		{
 			for(int i = 0; i < _onEnter.Count; i++)
@@ -51,6 +54,12 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override void CollectTransitions(List<TransitionInfo> results)
+		{
+			results.Add(new TransitionInfo(LeaveTransition, null, TransitionKind.Leave));
+		}
+
+		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
 			return null;
@@ -61,7 +70,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);

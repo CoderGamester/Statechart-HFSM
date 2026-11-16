@@ -8,19 +8,27 @@ namespace GameLovers.StatechartMachine.Internal
 	internal static class StatechartUtils
 	{
 		/// <summary>
-		/// Cleans ups the given <paramref name="stackTrace"/> of unnecessary string data
+		/// Removes the leading stack frames that belong to <see cref="System.Environment"/> and to this package, so the
+		/// trace starts at the user code that declared the state or transition.
 		/// </summary>
 		public static string RemoveGarbageFromStackTrace(string stackTrace)
 		{
-			var lineIdx = stackTrace.IndexOf('\n') + 1;
-			do
-			{
-				stackTrace = stackTrace.Remove(0, lineIdx);
-				lineIdx = stackTrace.IndexOf('\n') + 1;
-			}
-			while (stackTrace.Substring(0, lineIdx).Contains("StateMachine.Internal"));
+			var lines = stackTrace.Split('\n');
+			var first = 0;
 
-			return stackTrace + "\n";
+			while (first < lines.Length && IsPackageFrame(lines[first]))
+			{
+				first++;
+			}
+
+			return string.Join("\n", lines, first, lines.Length - first) + "\n";
+		}
+
+		private static bool IsPackageFrame(string line)
+		{
+			return line.Contains("System.Environment") ||
+			       line.Contains("GameLovers.StatechartMachine.Internal.") ||
+			       line.Contains("GameLovers.StatechartMachine.Statechart");
 		}
 	}
 }

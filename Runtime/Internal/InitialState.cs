@@ -17,6 +17,9 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Initial;
+
+		/// <inheritdoc />
 		public override void Enter()
 		{
 			// Do nothing on the initial state
@@ -37,7 +40,7 @@ namespace GameLovers.StatechartMachine.Internal
 #if UNITY_EDITOR || DEBUG
 			if (_transition?.TargetState == null)
 			{
-				throw new MissingMemberException($"Initial state {Name} doesn't have a transition defined, so nothing will happen");
+				throw new InvalidOperationException($"Initial state {Name} doesn't have a transition defined, so nothing will happen");
 			}
 
 			if (_transition.TargetState.Id == Id)
@@ -65,10 +68,16 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnExit action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnExit action");
 			}
 
 			_onExit.Add(action);
+		}
+
+		/// <inheritdoc />
+		public override void CollectTransitions(List<TransitionInfo> results)
+		{
+			results.Add(new TransitionInfo(_transition, null, TransitionKind.Automatic));
 		}
 
 		/// <inheritdoc />

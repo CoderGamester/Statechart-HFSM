@@ -1,0 +1,114 @@
+.gf-root {
+    flex-grow: 1;
+    padding: 24px;
+    background-color: rgb(28, 30, 38);
+}
+
+.gf-title {
+    font-size: 32px;
+    -unity-font-style: bold;
+    color: rgb(240, 240, 245);
+}
+
+.gf-hint {
+    font-size: 15px;
+    color: rgb(150, 155, 170);
+    margin-bottom: 16px;
+    white-space: normal;
+}
+
+.gf-main {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.gf-column {
+    flex-grow: 2;
+    flex-basis: 0;
+    margin-right: 16px;
+}
+
+.gf-phase {
+    font-size: 44px;
+    -unity-font-style: bold;
+    color: rgb(110, 220, 140);
+}
+
+.gf-detail {
+    font-size: 20px;
+    color: rgb(210, 210, 220);
+    margin-bottom: 12px;
+}
+
+.gf-stage {
+    height: 220px;
+    border-width: 2px;
+    border-color: rgb(70, 75, 95);
+    border-radius: 8px;
+    background-color: rgb(38, 42, 54);
+    margin-bottom: 16px;
+}
+
+.gf-player {
+    position: absolute;
+    left: 60px;
+    bottom: 16px;
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    background-color: rgb(90, 160, 255);
+    transition-property: bottom, background-color;
+    transition-duration: 0.25s;
+}
+
+.gf-player--airborne {
+    bottom: 120px;
+}
+
+.gf-player--down {
+    background-color: rgb(230, 80, 80);
+}
+
+.gf-player--hidden {
+    display: none;
+}
+
+.gf-waves {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    font-size: 22px;
+    color: rgb(255, 200, 80);
+}
+
+.gf-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.gf-button {
+    font-size: 20px;
+    min-width: 140px;
+    height: 48px;
+    margin: 4px;
+}
+
+.gf-activity {
+    flex-grow: 1;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: rgb(20, 22, 28);
+}
+
+.gf-activity-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(240, 240, 245);
+    margin-bottom: 8px;
+}
+
+.gf-activity-log {
+    font-size: 14px;
+    color: rgb(180, 185, 200);
+    white-space: normal;
+}

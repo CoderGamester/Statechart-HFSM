@@ -39,11 +39,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// in `_transition?.TargetState == null` is what covers this half; the sibling test below covers the
 		// transition-exists-but-has-no-target half of the same guard.
 		// RCR: InitialState.cs Validate — change the guard to `_transition != null && _transition.TargetState
-		// == null` (no longer fires when _transition itself is null) → RED (no MissingMemberException). The
+		// == null` (no longer fires when _transition itself is null) → RED (no InvalidOperationException). The
 		// sibling below stays green under this edit.
 		public void InitialState_MissingTransition_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
@@ -54,10 +54,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// ADMIT: InitialState.Validate also rejects a transition that was declared but never given a Target —
 		// the `.TargetState == null` half of the same guard the sibling test above exercises.
 		// RCR: InitialState.cs Validate — change the guard to `_transition == null` (no longer inspects
-		// TargetState) → RED (no MissingMemberException). The sibling above stays green under this edit.
+		// TargetState) → RED (no InvalidOperationException). The sibling above stays green under this edit.
 		public void InitialState_TransitionWithoutTarget_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
 				var final = factory.Final("final");
@@ -103,10 +103,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// ADMIT: Statechart's constructor rejects a setup that never declared an initial state, rather than
 		// leaving _currentState null for Run() to dereference later.
 		// RCR: Statechart.cs ctor — change `if (_stateFactory.InitialState == null)` to `if (false)` → RED (no
-		// MissingMemberException at construction).
+		// InvalidOperationException at construction).
 		public void NoInitialState_ThrowsException()
 		{
-			Assert.Throws<MissingMemberException>(() => new Statechart(factory =>
+			Assert.Throws<InvalidOperationException>(() => new Statechart(factory =>
 			{
 				var final = factory.Final("final");
 			}));

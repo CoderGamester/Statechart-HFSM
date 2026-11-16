@@ -5,10 +5,18 @@
   "version": "0.9.5",
   "unity": "6000.0",
   "license": "MIT",
-  "description": "Hierarchical statecharts with nested and parallel regions, event transitions, choices, and async waits.",
+  "description": "Hierarchical statecharts with nested and parallel regions, event transitions, choices, async waits, an observable trace, and a live Statechart Debugger.",
   "type": "library",
   "hideInEditor": false,
   "dependencies": {
-    "com.cysharp.unitask": "2.5.10"
-  }
+    "com.cysharp.unitask": "2.5.11",
+    "com.unity.modules.uielements": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Game Flow",
+      "description": "A small game loop driven by one statechart that uses every state kind; watch it live in the Statechart Debugger.",
+      "path": "Samples~/GameFlow"
+    }
+  ]
 }

@@ -16,9 +16,15 @@ namespace GameLovers.StatechartMachine.Internal
 		private bool _isPaused;
 		private ITransitionInternal _transition;
 
+		/// <summary>The nested regions of this state and their current inner state.</summary>
+		internal IList<InnerStateData> Regions => _innerStatesData;
+
 		public SplitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
 		}
+
+		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Split;
 
 		/// <inheritdoc />
 		public override void Enter()
@@ -51,12 +57,12 @@ namespace GameLovers.StatechartMachine.Internal
 
 				if (innerState.ExecuteExit)
 				{
-					innerState.CurrenState.Exit();
+					innerState.CurrenState.ExitSafely(null);
 				}
 
 				if (innerState.ExecuteFinal && !(innerState.CurrenState is FinalState) && !(innerState.CurrenState is LeaveState))
 				{
-					innerState.NestedFactory.FinalState?.Enter();
+					innerState.NestedFactory.FinalState?.EnterSafely(null);
 				}
 			}
 			
@@ -118,7 +124,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);
@@ -129,7 +135,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnExit action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnExit action");
 			}
 
 			_onExit.Add(action);
@@ -140,7 +146,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (statechartEvent == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null event");
+				throw new ArgumentNullException(nameof(statechartEvent), $"The state {Name} cannot have a null event");
 			}
 
 			var transition = new Transition();
@@ -194,6 +200,17 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override void CollectTransitions(List<TransitionInfo> results)
+		{
+			foreach (var pair in _events)
+			{
+				results.Add(new TransitionInfo(pair.Value, pair.Key, TransitionKind.Event));
+			}
+
+			results.Add(new TransitionInfo(_transition, null, TransitionKind.Completion));
+		}
+
+		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
 			if(_isPaused && !IsAllCompleted())
@@ -206,6 +223,12 @@ namespace GameLovers.StatechartMachine.Internal
 
 			if (statechartEvent != null && _events.TryGetValue(statechartEvent, out var transition))
 			{
+				// An action-only event keeps this state active, so its inner waits must keep running.
+				if (transition.TargetState == null)
+				{
+					return transition;
+				}
+
 				// Delay the completion of this state while some tasks are running
 				return !isUnpausing && DelayForceComplete(statechartEvent) ? null : transition;
 			}

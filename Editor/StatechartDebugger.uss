@@ -1,0 +1,167 @@
+.sc-root {
+    flex-grow: 1;
+}
+
+.sc-chart-menu {
+    min-width: 160px;
+}
+
+.sc-status {
+    -unity-text-align: middle-left;
+    padding: 0 8px;
+    color: rgb(230, 160, 60);
+}
+
+.sc-status-running {
+    color: rgb(80, 190, 110);
+}
+
+.sc-empty {
+    margin: 24px;
+    white-space: normal;
+    color: rgba(128, 128, 128, 1);
+}
+
+.sc-body {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+.sc-pane {
+    flex-grow: 1;
+    flex-basis: 0;
+    border-right-width: 1px;
+    border-right-color: rgba(0, 0, 0, 0.3);
+}
+
+.sc-pane-live {
+    flex-grow: 2;
+}
+
+.sc-pane-header {
+    -unity-font-style: bold;
+    padding: 4px 8px;
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+.sc-pane-content {
+    flex-grow: 1;
+    padding: 8px;
+}
+
+.sc-region {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.sc-regions {
+    flex-direction: column;
+    margin-top: 4px;
+}
+
+.sc-regions-split {
+    flex-direction: row;
+}
+
+.sc-lane {
+    flex-grow: 1;
+    border-width: 1px;
+    border-color: rgba(128, 128, 128, 0.6);
+    border-radius: 4px;
+    padding: 4px;
+    margin: 2px;
+}
+
+.sc-state {
+    border-width: 1px;
+    border-color: rgba(128, 128, 128, 0.7);
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: 3px;
+    min-width: 70px;
+    background-color: rgba(128, 128, 128, 0.08);
+}
+
+.sc-state-title {
+    flex-direction: row;
+    align-items: center;
+}
+
+.sc-state-title > #name {
+    -unity-font-style: bold;
+}
+
+.sc-badge {
+    font-size: 9px;
+    margin-left: 4px;
+    padding: 0 4px;
+    border-radius: 3px;
+    background-color: rgba(128, 128, 128, 0.25);
+}
+
+.sc-edge {
+    font-size: 10px;
+    color: rgba(128, 128, 128, 1);
+}
+
+.sc-pseudo {
+    min-width: 0;
+    border-radius: 10px;
+    padding: 0 4px;
+    align-self: center;
+}
+
+.sc-state.sc-active {
+    border-width: 2px;
+    border-color: rgb(60, 180, 95);
+    background-color: rgba(60, 180, 95, 0.18);
+}
+
+.sc-state.sc-recent {
+    border-color: rgb(255, 200, 60);
+}
+
+.sc-tree {
+    flex-grow: 1;
+    flex-basis: 0;
+    padding: 4px 0;
+}
+
+.sc-tree-row {
+    color: rgba(128, 128, 128, 1);
+}
+
+.sc-tree-row.sc-active {
+    color: rgb(60, 180, 95);
+    -unity-font-style: bold;
+}
+
+.sc-tree-lane {
+    font-size: 9px;
+    color: rgba(128, 128, 128, 0.8);
+    -unity-font-style: italic;
+}
+
+.sc-trace {
+    flex-grow: 1;
+    flex-basis: 0;
+}
+
+.sc-trace-row {
+    font-size: 11px;
+    padding-left: 6px;
+    -unity-text-align: middle-left;
+}
+
+.sc-trace-event {
+    color: rgb(255, 200, 60);
+}
+
+.sc-trace-enter {
+    color: rgb(60, 180, 95);
+}
+
+.sc-trace-fault {
+    color: rgb(230, 80, 80);
+}

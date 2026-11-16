@@ -1,8 +1,8 @@
 # GameLovers Statechart
 
-Hierarchical statecharts for Unity 6 with nested and parallel regions, event transitions, choices, and async waits.
+Hierarchical statecharts for Unity 6 with nested and parallel regions, event transitions, choices, async waits, a live debugger, and a playable sample.
 
-[![Unity](https://img.shields.io/badge/Unity-6000.0%20%7C%206000.3%20%7C%206000.5-blue.svg)](https://unity.com/download)
+[![Unity](https://img.shields.io/badge/Unity-6000.0%20%7C%206000.3%20%7C%206000.6-blue.svg)](https://unity.com/download)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
 ## When to use it
@@ -14,19 +14,19 @@ Use Statechart when a flat FSM cannot express hierarchical behavior, concurrent 
 | Item | Current policy |
 | --- | --- |
 | Minimum Unity version | `6000.0` |
-| Reference streams | `6000.0.x`, `6000.3.x`, `6000.5.x` |
-| Reference editors | `6000.0.81f1`, `6000.3.21f1`, `6000.5.7f1` (primary) |
+| Supported streams | `6000.0.x`, `6000.3.x`, `6000.6.x` (LTS) |
+| Statechart Debugger views A and C | All supported streams |
+| Statechart Debugger view B (Graph Toolkit) | `6000.6` and newer; the view's assembly is compiled out on older editors |
 | Render pipeline | Pipeline-neutral |
-| Validation status | Compatibility target; consult fresh matrix artifacts before claiming validation. |
 
 ## Install
 
-Add UniTask explicitly when installing from Git:
+Add UniTask explicitly when installing from Git. Use UniTask 2.5.11 or newer: 2.5.10's Editor code does not compile on Unity 6000.6.
 
 ```json
 {
   "dependencies": {
-    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.10",
+    "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.11",
     "com.gamelovers.statechart": "https://github.com/CoderGamester/Statechart-HFSM.git#0.9.5"
   }
 }
@@ -34,7 +34,7 @@ Add UniTask explicitly when installing from Git:
 
 ## First success
 
-Keep events as fields: statechart event identity is by object instance, not by its display name.
+Keep events as fields: statechart event identity is by object instance, not by its display name. Give the chart a name so logs and the debugger can tell charts apart, and dispose it with its owner.
 
 ```csharp
 using GameLovers.StatechartMachine;
@@ -42,24 +42,27 @@ using UnityEngine;
 
 public sealed class PlayerStatechart : MonoBehaviour
 {
-    private readonly StatechartEvent jump = new("Jump");
-    private Statechart chart;
+    private readonly StatechartEvent _jump = new("Jump");
+    private IStatechart _chart;
 
     private void Awake()
     {
-        chart = new Statechart(factory =>
+        _chart = new Statechart("Player", factory =>
         {
             var initial = factory.Initial("Initial");
             var idle = factory.State("Idle");
             var jumping = factory.State("Jumping");
+
             initial.Transition().Target(idle);
-            idle.Event(jump).Target(jumping);
-            jumping.Event(jump).Target(idle);
+            idle.Event(_jump).Target(jumping);
+            jumping.Event(_jump).Target(idle);
         });
-        chart.Run();
+        _chart.Run();
     }
 
-    public void Jump() => chart.Trigger(jump);
+    private void OnDestroy() => _chart.Dispose();
+
+    public void Jump() => _chart.Trigger(_jump);
 }
 ```
 
@@ -70,21 +73,78 @@ stateDiagram-v2
   Jumping --> Idle: jump event
 ```
 
+## State kinds
+
+| Factory method | Kind | Behavior |
+| --- | --- | --- |
+| `Initial` | Initial | Entry point of a region; exactly one per region |
+| `Final` | Final | Completes its region |
+| `State` | Simple | Waits for events; event transitions may omit a target to run an action only |
+| `Transition` | Transition | Passes straight through to its target, running its callbacks |
+| `Choice` | Choice | Takes the first transition whose condition is true, otherwise the one without a condition |
+| `Wait` | Wait | Resumes when its `IWaitActivity` completes; still reacts to configured events |
+| `TaskWait` | TaskWait | Awaits a `Task` or `UniTask`; ignores events while waiting |
+| `Nest` | Nest | One nested region; completes when that region reaches its final state |
+| `Split` | Split | Two or more parallel regions; completes when all of them finish |
+| `Leave` | Leave | Leaves the enclosing nest or split from inside a region |
+
 ## Runtime semantics
 
-| Concept | Behavior |
+| Topic | Behavior |
 | --- | --- |
-| `Trigger` | Ignored until `Run()` and while the chart is paused |
-| `Choice` | Takes the first true transition; define a fallback deliberately |
-| Action-only transition | Valid when it has no target and exists for its action |
-| `Wait` | Resumes when its wait activity completes; can receive configured events |
-| `TaskWait` | Waits on a `Task` or `UniTask`; it does not receive events while waiting |
-| `Nest` / `Split` | Create sequential nested regions / concurrent regions |
+| `Trigger` | Ignored until `Run()` and while paused |
+| Run to completion | An event triggered while another one is processed (for example from `OnEnter`) is queued and processed right after it |
+| `Pause()` | Stops the chart, also mid-chain when called from a callback; `Run()` resumes from the same states |
+| `Reset()` | Returns to the initial state without exit callbacks; drops queued events and abandons pending waits and tasks |
+| `Dispose()` | Stops the chart for good, cancels token-aware tasks and removes it from the debugger; `Run()` then throws `ObjectDisposedException` |
+| `TaskWait` faults | A task that throws is logged and still completes the state, so the chart and parent splits never wait forever |
+| `TaskWait` threads | The chart always resumes on the main thread, even if the awaited task completes on a worker thread |
+| Cancellation | `WaitingFor(Func<CancellationToken, UniTask>)` and the `Task` variant receive a token cancelled by `Reset()` and `Dispose()` |
+| Callback exceptions | Enter, exit and transition exceptions are logged with the stack trace of the code that declared the failing state, and the chart keeps going |
 
-Missing top-level initial configuration is rejected in all builds. Other setup validation has build-dependent editor/debug behavior; write and test the behavior you require instead of relying on broad “all invalid graphs fail immediately” assumptions.
+The constructor rejects a setup without an initial state in every build. Other setup validation (missing targets, self loops, malformed choices, leave depth) runs only in the Editor and in `DEBUG` builds.
 
-## Recipes and support
+## Observe a running chart
 
-The public API supports `Nest`, `Split`, `Choice`, `Wait`, and `TaskWait`; add a small package sample before treating any recipe as a supported end-to-end workflow. Until then, use the source tests as the executable reference.
+Every chart exposes its structure and its live state, so tools, tests and logs read the same data:
+
+```csharp
+// Read-only topology, built once at construction.
+foreach (var state in chart.RootRegion.States)
+{
+    Debug.Log($"{state.Path} ({state.Kind}) with {state.Transitions.Count} transitions");
+}
+
+// Active states, parents before children.
+var active = new List<StateNode>();
+chart.GetActiveStates(active);
+
+// Every step in execution order: events, exits, transitions, enters, faults, lifecycle.
+chart.Traced += trace => Debug.Log(trace);
+
+// Text exports for bug reports or AI agents.
+var mermaid = StatechartExport.ToMermaid(chart);
+var paths = StatechartExport.ToActivePaths(chart);
+```
+
+Set `chart.LogsEnabled = true` (or `LogsEnabled` on a single state) to write the same trace lines to the console, for example `[Statechart 'Player'] Idle -> Jumping on 'Jump'`. Nothing is formatted or published while no one subscribes and logs are off.
+
+## Statechart Debugger
+
+Open **Tools > GameLovers > Statechart Debugger** in Play mode. Pick a chart from the toolbar; Run, Pause and Reset act on that chart. Three views read the same data and can be shown side by side:
+
+| View | What it shows | Unity |
+| --- | --- | --- |
+| **A · Live chart** | Nested boxes: nest and split states contain their regions, split regions are dashed lanes, active states are green and newly entered ones flash | All |
+| **B · Graph** | A Graph Toolkit graph generated from the chart: active states get a bright green accent bar and taken transitions stay thick | 6000.6+ |
+| **C · Tree + trace** | An indented tree with the active states marked, and the latest 256 trace steps | All |
+
+View B writes a generated, display-only `.statechartdebug` asset to `Assets/StatechartDebugger/` and opens it in the Graph Toolkit window; dock that window next to the debugger. Its highlights are recorded as undo steps of that graph and mark it as modified; there is nothing to save. Delete the folder or add it to your `.gitignore` if you do not want to keep it. The **Copy** menu puts the Mermaid diagram, the active state paths or the trace history on the clipboard.
+
+## Samples
+
+Import **Game Flow** from the Package Manager's Samples tab. One statechart runs a small game loop that uses every state kind: a nested boot sequence with cancellable task waits, a menu, a split gameplay state (a player region and a waves region), a choice, leave states and results. It has on-screen buttons and an activity log, and is meant to be watched with the Statechart Debugger open. See the sample's `README.md`.
+
+## Support
 
 See [CHANGELOG.md](CHANGELOG.md) and file an [issue](https://github.com/CoderGamester/Statechart-HFSM/issues). `AGENTS.md` is contributor guidance, not end-user API documentation.

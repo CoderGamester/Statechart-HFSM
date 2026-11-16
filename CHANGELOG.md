@@ -6,8 +6,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+**New**:
+- Added the Statechart Debugger (*Tools > GameLovers > Statechart Debugger*) with three live views of a running chart: A, nested boxes; B, a Graph Toolkit graph on Unity 6000.6 and newer; and C, a state tree and trace log.
+- Added a read-only topology (`IStatechart.RootRegion`, `StateNode`, `RegionNode`, `TransitionEdge`), `GetActiveStates`, `IsActive`, `Name` and `IsRunning` to `IStatechart`.
+- Added `IStatechart.Traced`, which publishes every event, exit, transition, enter, fault and lifecycle step in execution order, and `StatechartExport.ToMermaid` / `ToActivePaths` text exports.
+- Added a `Statechart(string name, Action<IStateFactory> setup)` constructor and `IDisposable` support.
+- Added `ITaskWaitState.WaitingFor` overloads that receive a `CancellationToken`, cancelled by `Reset()` and `Dispose()`.
+- Added the **Game Flow** sample, which uses every state kind.
+
 **Changed**:
-- Declared Unity 6000.0 as the package minimum and documented 6000.0.x, 6000.3.x, and 6000.5.x as compatibility reference streams.
+- Declared Unity 6000.0 as the package minimum and 6000.0.x, 6000.3.x and 6000.6.x as the supported streams.
+- Raised the UniTask dependency to 2.5.11, the first version whose Editor code compiles on Unity 6000.6, and declared the built-in UIElements module used by the debugger and the sample.
+- Events triggered while another event is being processed, for example from an enter callback, are now queued and processed right after it (run to completion) instead of running against the previous state.
+- `Reset()` now drops queued events and abandons pending waits and tasks, so their late completion no longer moves the chart.
+- `LogsEnabled` now writes one trace line per step, such as `[Statechart 'Player'] Idle -> Jumping on 'Jump'`.
+- Null arguments now throw `ArgumentNullException`, and a setup without an initial state throws `InvalidOperationException` instead of `MissingMemberException`.
+- **Breaking**: removed the Editor-only `Statechart.CurrentState`; use `GetActiveStates` or the Statechart Debugger instead.
+
+**Fixed**:
+- A `TaskWait` state whose task throws no longer blocks the chart and its parent splits forever; the fault is logged and the state completes.
+- `TaskWait` states now resume the chart on the main thread, and a `Task` completing on the main thread resumes it in the same frame.
+- Pausing the chart from a callback now stops a chain of automatic transitions until the next `Run()`.
+- An action-only event on a nest or split state no longer force-completes the waits inside it.
+- Creation stack traces in error logs now start at the code that declared the failing state, and enter-callback errors no longer report themselves as exit errors.
 
 ## [0.9.5] - 2026-08-04
 

@@ -66,15 +66,18 @@ Benchmarks use the inverted check: removing the workload from the measured body 
 
 - All tests live under `Tests/Editor/` in `GameLovers.Statechart.Editor.Tests`; there is no PlayMode or performance assembly.
 - The test assembly references Statechart, UniTask, NUnit, and NSubstitute.
-- There is no runtime `InternalsVisibleTo` grant. Test through the public statechart interfaces unless an intentional assembly-boundary change adds one.
+- `Runtime/AssemblyInfo.cs` grants internals to this assembly for helpers with no public surface (`StatechartUtils`, `StatechartRegistry`). Prefer the public interfaces, topology and `Traced` for everything else.
+- `StatechartLifecycleTest` covers run-to-completion queueing, pause, reset, dispose and faults; `StatechartObservabilityTest` covers topology, active states, trace order, logs, exports and the registry.
 
 ## Package conventions
 
 - Use the existing `GameLoversEditor.StatechartMachine.Tests` namespace and singular `{Subject}Test` fixture names.
-- Callback collaborators use the shared `IMockCaler`/NSubstitute pattern. Avoid new helper abstractions when a local callback counter is sufficient.
+- Callback collaborators use the shared `IMockCaller`/NSubstitute pattern. Avoid new helper abstractions when a local callback counter is sufficient.
 - Setup graphs must reuse event instances; do not accidentally test name equality with freshly constructed events.
 - Tests for validation exceptions run in the Editor configuration where validation is compiled. They must not imply release-build enforcement.
 - Async waiting tests distinguish `IWaitState` event behavior from `ITaskWaitState` queue/exit behavior.
+- Async tests stay synchronous `void` tests: awaited work returns a `TaskCompletionSource` or `UniTaskCompletionSource` task that the test completes explicitly. Never wait with `Task.Yield`, `UniTask.Yield`, delays or polling loops; they depend on Editor frame scheduling.
+- When order matters, assert an ordered list of callback names or `Traced` steps instead of NSubstitute call counts.
 
 ## Verification
 
