@@ -15,15 +15,17 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		private readonly IStatechartEvent _event = new StatechartEvent("Event");
 
 		private IMockCaller _caller;
-		private bool _blocker;
-		private bool _done;
+		private TaskCompletionSource<bool> _taskSource;
+		private UniTaskCompletionSource _uniTaskSource;
 		
 		[SetUp]
 		public void Init()
 		{
 			_caller = Substitute.For<IMockCaller>();
-			_blocker = true;
-			_done = false;
+			// Completion sources make every await deterministic: the test decides exactly when each task finishes,
+			// and the continuation runs synchronously instead of depending on Editor frame scheduling.
+			_taskSource = new TaskCompletionSource<bool>();
+			_uniTaskSource = new UniTaskCompletionSource();
 		}
 
 		[Test]
@@ -31,7 +33,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// so the chart parks in the state for the task's duration instead of falling straight through.
 		// RCR: TaskWaitState.cs OnTrigger — change `return Completed ? _transition : null;` to `return null;`
 		// → RED (the awaited task finishes but the chart never advances).
-		public async Task SimpleTest()
+		public void SimpleTest()
 		{
 			var statechart = new Statechart(SetupTaskWaitState);
 
@@ -45,9 +47,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			_blocker = false;
-
-			await YieldWaitTask();
+			_taskSource.SetResult(true);
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
@@ -60,9 +60,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// so a trigger arriving mid-task cannot pre-empt the await (unlike WaitState, which does honour events).
 		// RCR: TaskWaitState.cs OnTrigger — return `_transition` when `statechartEvent != null` → RED (the
 		// mid-task assertions below fire: the chart advances on Trigger instead of waiting for the task). Those
-		// assertions must stay BEFORE `_blocker = false` — once the task completes both paths reach the same
+		// assertions must stay BEFORE the task source completes — once the task completes both paths reach the same
 		// final state and nothing downstream can tell them apart.
-		public async Task TaskWait_EventTrigger_DoesNothing()
+		public void TaskWait_EventTrigger_DoesNothing()
 		{
 			var statechart = new Statechart(SetupTaskWaitState);
 
@@ -83,9 +83,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			_caller.DidNotReceive().StateOnExitCall(0);
 			_caller.DidNotReceive().FinalOnEnterCall(0);
 
-			_blocker = false;
-
-			await YieldWaitTask();
+			_taskSource.SetResult(true);
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
@@ -98,7 +96,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// mid-await events for the same reason its sibling above does.
 		// RCR: TaskWaitState.cs OnTrigger — same edit as the Task sibling above; both go RED together, which
 		// is itself the point: the two overloads are not separately guarded.
-		public async Task UniTaskWait_EventTrigger_DoesNothing()
+		public void UniTaskWait_EventTrigger_DoesNothing()
 		{
 			var statechart = new Statechart(SetupUniTaskWaitState);
 
@@ -114,9 +112,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 			statechart.Trigger(_event);
 
-			_blocker = false;
-
-			await YieldWaitUniTask();
+			_uniTaskSource.TrySetResult();
 
 			_caller.Received().OnTransitionCall(1);
 			_caller.DidNotReceive().OnTransitionCall(2);
@@ -170,44 +166,14 @@ namespace GameLoversEditor.StatechartMachine.Tests
 			}));
 		}
 
-		private async Task TaskWaitAction()
+		private Task TaskWaitAction()
 		{
-			while (_blocker)
-			{
-				await Task.Yield();
-			}
-
-			_done = true;
+			return _taskSource.Task;
 		}
 
-		private async UniTask UniTaskWaitAction()
+		private UniTask UniTaskWaitAction()
 		{
-			while (_blocker)
-			{
-				await UniTask.Yield();
-			}
-
-			_done = true;
-		}
-
-		private async Task YieldWaitTask()
-		{
-			while (!_done)
-			{
-				await Task.Yield();
-			}
-
-			await Task.Yield();
-		}
-
-		private async UniTask YieldWaitUniTask()
-		{
-			while (!_done)
-			{
-				await UniTask.Yield();
-			}
-
-			await UniTask.Yield();
+			return _uniTaskSource.Task;
 		}
 
 		private IFinalState SetupSimpleFlow(IStateFactory factory, IState state)

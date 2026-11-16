@@ -1,8 +1,8 @@
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
@@ -12,9 +12,10 @@ namespace GameLovers.StatechartMachine.Internal
 	internal class TaskWaitState : StateInternal, ITaskWaitState
 	{
 		private ITransitionInternal _transition;
-		private Func<UniTask> _taskAwaitAction;
+		private Func<CancellationToken, UniTask> _taskAwaitAction;
 		private IStatechartEvent _eventQueued;
 		private bool _triggered;
+		private int _enterCount;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -39,10 +40,14 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.TaskWait;
+
+		/// <inheritdoc />
 		public override void Enter()
 		{
 			_eventQueued = null;
 			_triggered = false;
+			_enterCount++;
 			Completed = false;
 
 			for (int i = 0; i < _onEnter.Count; i++)
@@ -88,7 +93,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);
@@ -99,7 +104,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnExit action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnExit action");
 			}
 
 			_onExit.Add(action);
@@ -108,24 +113,33 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public ITransition WaitingFor(Func<Task> taskAwaitAction)
 		{
-			if (taskAwaitAction == null)
-			{
-				throw new NullReferenceException($"The state {Name} cannot have a null wait action");
-			}
+			ThrowIfNull(taskAwaitAction);
 
-			_taskAwaitAction = () => taskAwaitAction().AsUniTask();
-			_transition = new Transition();
-
-			return _transition;
+			return SetAwaitAction(_ => AwaitTask(taskAwaitAction()));
 		}
 
 		/// <inheritdoc />
 		public ITransition WaitingFor(Func<UniTask> taskAwaitAction)
 		{
-			_taskAwaitAction = taskAwaitAction ?? throw new NullReferenceException($"The state {Name} cannot have a null wait action");
-			_transition = new Transition();
+			ThrowIfNull(taskAwaitAction);
 
-			return _transition;
+			return SetAwaitAction(_ => taskAwaitAction());
+		}
+
+		/// <inheritdoc />
+		public ITransition WaitingFor(Func<CancellationToken, Task> taskAwaitAction)
+		{
+			ThrowIfNull(taskAwaitAction);
+
+			return SetAwaitAction(token => AwaitTask(taskAwaitAction(token)));
+		}
+
+		/// <inheritdoc />
+		public ITransition WaitingFor(Func<CancellationToken, UniTask> taskAwaitAction)
+		{
+			ThrowIfNull(taskAwaitAction);
+
+			return SetAwaitAction(taskAwaitAction);
 		}
 
 		/// <inheritdoc />
@@ -134,40 +148,63 @@ namespace GameLovers.StatechartMachine.Internal
 			if (!_triggered)
 			{
 				_triggered = true;
-				_ = InnerTaskAwait(statechartEvent?.Name);
+				InnerTaskAwait(_enterCount, Chart.CancellationToken).Forget();
 			}
 
 			return Completed ? _transition : null;
 		}
 
-		private async UniTask InnerTaskAwait(string eventName)
+		private void ThrowIfNull(Delegate taskAwaitAction)
+		{
+			if (taskAwaitAction == null)
+			{
+				throw new ArgumentNullException(nameof(taskAwaitAction), $"The state {Name} cannot have a null wait action");
+			}
+		}
+
+		private ITransition SetAwaitAction(Func<CancellationToken, UniTask> taskAwaitAction)
+		{
+			_taskAwaitAction = taskAwaitAction;
+			_transition = CreateTransition(TransitionKind.Completion);
+
+			return _transition;
+		}
+
+		private static async UniTask AwaitTask(Task task)
+		{
+			// Awaiting the Task directly resumes inline when it completes on the main thread; AsUniTask would always
+			// post the continuation to a later frame.
+			await task;
+		}
+
+		private async UniTaskVoid InnerTaskAwait(int enterCount, CancellationToken token)
 		{
 			try
 			{
-				if (IsStateLogsEnabled)
-				{
-					Debug.Log($"TaskWait - '{eventName}' : '{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()' => '{Name}'");
-				}
-
-				//await Task.Yield();
-				await _taskAwaitAction();
-
-				Completed = true;
-
-				_stateFactory.Data.StateChartMoveNextCall(_eventQueued);
+				await _taskAwaitAction(token);
+			}
+			catch (OperationCanceledException) when (token.IsCancellationRequested)
+			{
+				// Cancelled by Reset or Dispose: the state was abandoned, so there is nothing left to complete.
+				return;
 			}
 			catch (Exception e)
 			{
-				var finalMessage = "";
-#if UNITY_EDITOR || DEBUG
-				finalMessage = $"\nStackTrace log of '{Name}' state creation bellow.\n{CreationStackTrace}";
-#endif
-
-				Debug.LogError($"Exception in the state '{Name}', when calling the task wait action" +
-					$"'{_taskAwaitAction.Target}.{_taskAwaitAction.Method.Name}()'.\n" +
-					$"-->> Check the exception log after this one for more details <<-- {finalMessage}");
-				Debug.LogException(e);
+				// A faulted task still completes the state; otherwise the chart and any parent split would wait forever.
+				ReportFault(e, $"Exception in the state '{Name}', when awaiting the task wait action.", CreationStackTrace);
 			}
+
+			// Task continuations may resume on a worker thread; the chart and its callbacks only run on the main thread.
+			await UniTask.SwitchToMainThread();
+
+			if (enterCount != _enterCount || token.IsCancellationRequested)
+			{
+				return;
+			}
+
+			Completed = true;
+
+			_stateFactory.Data.StateChartMoveNextCall(_eventQueued);
 		}
 	}
 }

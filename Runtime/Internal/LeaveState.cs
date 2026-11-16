@@ -20,6 +20,9 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
+		public override StateKind Kind => StateKind.Leave;
+
+		/// <inheritdoc />
 		public override void Enter()
 		{
 			for(int i = 0; i < _onEnter.Count; i++)
@@ -61,7 +64,7 @@ namespace GameLovers.StatechartMachine.Internal
 		{
 			if (action == null)
 			{
-				throw new NullReferenceException($"The state {Name} cannot have a null OnEnter action");
+				throw new ArgumentNullException(nameof(action), $"The state {Name} cannot have a null OnEnter action");
 			}
 
 			_onEnter.Add(action);
@@ -75,7 +78,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new InvalidOperationException($"State {Name} already has a transition defined");
 			}
 
-			LeaveTransition = new Transition();
+			LeaveTransition = CreateTransition(TransitionKind.Leave);
 
 			return LeaveTransition;
 		}
