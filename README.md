@@ -26,7 +26,7 @@ Add UniTask explicitly when installing from Git. Use UniTask 2.5.11 or newer: 2.
 {
   "dependencies": {
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask#2.5.11",
-    "com.gamelovers.statechart": "https://github.com/CoderGamester/Statechart-HFSM.git#0.9.5"
+    "com.gamelovers.statechart": "https://github.com/CoderGamester/Statechart-HFSM.git#1.0.0"
   }
 }
 ```
