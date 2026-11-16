@@ -4,7 +4,7 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-11-16
+## [1.0.0] - 2026-11-17
 
 **New**:
 - **Statechart Debugger**: *Tools > GameLovers > Statechart Debugger* shows any running chart live, with Run, Pause and Reset controls and two views that can each be turned on or off: a live chart of nested boxes with parallel regions as lanes, and a state tree with the latest 256 trace steps. The **Copy** menu exports a Mermaid diagram, the active state paths or the trace.
