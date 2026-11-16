@@ -2,7 +2,7 @@
     <Style src="GameFlow.uss" />
     <ui:VisualElement name="root" class="gf-root">
         <ui:Label text="Statechart · Game Flow" class="gf-title" />
-        <ui:Label text="Open Tools &gt; GameLovers &gt; Statechart Debugger to watch views A, B and C next to this game." class="gf-hint" />
+        <ui:Label text="Open Tools &gt; GameLovers &gt; Statechart Debugger to watch this game's states live." class="gf-hint" />
         <ui:VisualElement class="gf-main">
             <ui:VisualElement class="gf-column">
                 <ui:Label name="phase" text="Booting" class="gf-phase" />

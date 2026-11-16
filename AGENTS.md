@@ -6,7 +6,7 @@ This guide adds package-specific rules to the host repository guide. Consumer us
 
 - Package: `com.gamelovers.statechart`; minimum Unity version and dependencies are authoritative in `package.json`. Supported streams are 6000.0, 6000.3 and 6000.6.
 - `GameLovers.Statechart` (runtime) implements hierarchical statecharts with nested and parallel regions, events, choices, callback waits, Task/UniTask waits, and the read-only topology, active-state and trace API.
-- `GameLovers.Statechart.Editor` holds the Statechart Debugger; `GameLovers.Statechart.Editor.GraphToolkit` holds view B and compiles only on 6000.6+.
+- `GameLovers.Statechart.Editor` holds the Statechart Debugger.
 - `Samples~/GameFlow` is the single package sample. This package is render-pipeline-neutral.
 - Public contracts live at `Runtime/`; implementations under `Runtime/Internal/` remain internal. `Runtime/AssemblyInfo.cs` grants internals to the Editor and Editor test assemblies only.
 - Before reading, editing, or creating any file in `Editor/`, you **MUST** read [Editor/AGENTS.md](Editor/AGENTS.md) first.

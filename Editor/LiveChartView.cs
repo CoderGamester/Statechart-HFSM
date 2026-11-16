@@ -7,7 +7,7 @@ using UnityEngine.UIElements;
 namespace GameLovers.StatechartMachine.Editor
 {
 	/// <summary>
-	/// View A: the chart drawn as nested boxes. Nest and split states contain their regions, split regions sit side
+	/// The chart drawn as nested boxes. Nest and split states contain their regions, split regions sit side
 	/// by side as dashed lanes, and every active state is highlighted.
 	/// </summary>
 	internal sealed class LiveChartView : VisualElement
@@ -22,7 +22,7 @@ namespace GameLovers.StatechartMachine.Editor
 			AddToClassList("sc-pane");
 			AddToClassList("sc-pane-live");
 
-			var header = new Label("A · Live chart");
+			var header = new Label("Live chart");
 			header.AddToClassList("sc-pane-header");
 			Add(header);
 

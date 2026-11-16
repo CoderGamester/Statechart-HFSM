@@ -10,9 +10,8 @@ using UnityEngine.UIElements;
 namespace GameLovers.StatechartMachine.Editor
 {
 	/// <summary>
-	/// Live debugger for every running <see cref="Statechart"/>. Shows the selected chart through three views that
-	/// read the same topology, active states and trace history: A (nested boxes), B (Graph Toolkit graph, Unity 6.6+)
-	/// and C (state tree and trace log).
+	/// Live debugger for every running <see cref="Statechart"/>. Shows the selected chart as a live chart of nested
+	/// boxes and as a state tree with its trace log; the toolbar toggles turn each view on or off.
 	/// </summary>
 	public class StatechartDebuggerWindow : EditorWindow
 	{
@@ -30,21 +29,10 @@ namespace GameLovers.StatechartMachine.Editor
 		private int _renderedVersion = -1;
 		private ToolbarMenu _chartMenu;
 		private Label _statusLabel;
-		private ToolbarToggle _graphToggle;
 		private VisualElement _body;
 		private Label _emptyLabel;
 		private LiveChartView _liveChartView;
 		private TreeTraceView _treeTraceView;
-
-		/// <summary>
-		/// Set by the Graph Toolkit assembly on Unity 6.6+ to open view B for a chart; null on older editors.
-		/// </summary>
-		internal static Action<IStatechart, StatechartRegistry.Entry> GraphViewOpener { get; set; }
-
-		/// <summary>
-		/// The chart currently selected in any open debugger window, read by view B to follow the selection.
-		/// </summary>
-		internal static IStatechart SelectedChart { get; private set; }
 
 		[MenuItem("Tools/GameLovers/Statechart Debugger", priority = 100)]
 		private static void Open()
@@ -107,25 +95,8 @@ namespace GameLovers.StatechartMachine.Editor
 			toolbar.Add(new ToolbarButton(() => _selectedChart?.Reset()) { text = "Reset", tooltip = "Reset to the initial state" });
 			toolbar.Add(new ToolbarSpacer { flex = true });
 
-			toolbar.Add(CreateViewToggle("A  Live chart", _showLiveChart, value => _showLiveChart = value));
-
-			_graphToggle = new ToolbarToggle { text = "B  Graph", value = false };
-			_graphToggle.SetEnabled(GraphViewOpener != null);
-			_graphToggle.tooltip = GraphViewOpener != null
-				? "Open the chart as a Graph Toolkit graph with live highlighting"
-				: "Requires Unity 6.6 or newer (Graph Toolkit)";
-			_graphToggle.RegisterValueChangedCallback(evt =>
-			{
-				_graphToggle.SetValueWithoutNotify(false);
-
-				if (_selectedChart != null)
-				{
-					GraphViewOpener?.Invoke(_selectedChart, _selected);
-				}
-			});
-			toolbar.Add(_graphToggle);
-
-			toolbar.Add(CreateViewToggle("C  Tree + trace", _showTreeTrace, value => _showTreeTrace = value));
+			toolbar.Add(CreateViewToggle("Live chart", _showLiveChart, value => _showLiveChart = value));
+			toolbar.Add(CreateViewToggle("Tree + trace", _showTreeTrace, value => _showTreeTrace = value));
 
 			var copyMenu = new ToolbarMenu { text = "Copy" };
 			copyMenu.menu.AppendAction("Mermaid diagram", _ => Copy(StatechartExport.ToMermaid),
@@ -208,7 +179,6 @@ namespace GameLovers.StatechartMachine.Editor
 			_selected = entry;
 			_selectedChart = null;
 			entry?.TryGetChart(out _selectedChart);
-			SelectedChart = _selectedChart;
 			_selectedChartName = entry?.Name ?? _selectedChartName;
 			_renderedVersion = -1;
 
@@ -239,7 +209,6 @@ namespace GameLovers.StatechartMachine.Editor
 				return;
 			}
 
-			SelectedChart = _selectedChart;
 			_statusLabel.text = _selectedChart.IsRunning ? "Running" : "Paused";
 			_statusLabel.EnableInClassList("sc-status-running", _selectedChart.IsRunning);
 

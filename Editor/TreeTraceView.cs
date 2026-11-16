@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 namespace GameLovers.StatechartMachine.Editor
 {
 	/// <summary>
-	/// View C: an indented tree of every state with the active ones marked, above a scrolling trace log.
+	/// An indented tree of every state with the active ones marked, above a scrolling trace log.
 	/// </summary>
 	internal sealed class TreeTraceView : VisualElement
 	{
@@ -20,7 +20,7 @@ namespace GameLovers.StatechartMachine.Editor
 			AddToClassList("sc-pane");
 			AddToClassList("sc-pane-tree");
 
-			var treeHeader = new Label("C · State tree");
+			var treeHeader = new Label("State tree");
 			treeHeader.AddToClassList("sc-pane-header");
 			Add(treeHeader);
 

@@ -18,8 +18,9 @@ One statechart drives a small game loop. Between them, its states use every stat
 1. Open `GameFlow.unity` and enter Play mode.
 2. Open **Tools > GameLovers > Statechart Debugger** and dock it next to the Game view.
 3. Use the on-screen buttons. The debugger follows the chart live:
-   - **A · Live chart** shows nested boxes with the active states highlighted.
-   - **B · Graph** (Unity 6.6 and newer) opens the chart as a Graph Toolkit graph that highlights active nodes and taken transitions.
-   - **C · Tree + trace** shows the state tree and the latest trace steps.
+   - **Live chart** shows nested boxes with the active states highlighted.
+   - **Tree + trace** shows the state tree and the latest trace steps.
+
+   Turn either view on or off with its toolbar toggle.
 
 The Activity panel in the game lists the same events and state entries from `IStatechart.Traced`.

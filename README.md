@@ -15,8 +15,7 @@ Use Statechart when a flat FSM cannot express hierarchical behavior, concurrent 
 | --- | --- |
 | Minimum Unity version | `6000.0` |
 | Supported streams | `6000.0.x`, `6000.3.x`, `6000.6.x` (LTS) |
-| Statechart Debugger views A and C | All supported streams |
-| Statechart Debugger view B (Graph Toolkit) | `6000.6` and newer; the view's assembly is compiled out on older editors |
+| Statechart Debugger | All supported streams |
 | Render pipeline | Pipeline-neutral |
 
 ## Install
@@ -130,15 +129,14 @@ Set `chart.LogsEnabled = true` (or `LogsEnabled` on a single state) to write the
 
 ## Statechart Debugger
 
-Open **Tools > GameLovers > Statechart Debugger** in Play mode. Pick a chart from the toolbar; Run, Pause and Reset act on that chart. Three views read the same data and can be shown side by side:
+Open **Tools > GameLovers > Statechart Debugger** in Play mode. Pick a chart from the toolbar; Run, Pause and Reset act on that chart. Two views read the same data; the **Live chart** and **Tree + trace** toolbar toggles turn each one on or off:
 
-| View | What it shows | Unity |
-| --- | --- | --- |
-| **A · Live chart** | Nested boxes: nest and split states contain their regions, split regions are dashed lanes, active states are green and newly entered ones flash | All |
-| **B · Graph** | A Graph Toolkit graph generated from the chart: active states get a bright green accent bar and taken transitions stay thick | 6000.6+ |
-| **C · Tree + trace** | An indented tree with the active states marked, and the latest 256 trace steps | All |
+| View | What it shows |
+| --- | --- |
+| **Live chart** | Nested boxes: nest and split states contain their regions, split regions are dashed lanes, active states are green and newly entered ones flash |
+| **Tree + trace** | An indented tree with the active states marked, and the latest 256 trace steps |
 
-View B writes a generated, display-only `.statechartdebug` asset to `Assets/StatechartDebugger/` and opens it in the Graph Toolkit window; dock that window next to the debugger. Graph Toolkit has no read-only mode, so the graph can be edited, but edits never reach the game and are replaced the next time **B Graph** opens it; a warning marker on the first node says so. Its highlights are recorded as undo steps of that graph and mark it as modified; there is nothing to save. Delete the folder or add it to your `.gitignore` if you do not want to keep it. The **Copy** menu puts the Mermaid diagram, the active state paths or the trace history on the clipboard.
+The **Copy** menu puts the Mermaid diagram, the active state paths or the trace history on the clipboard.
 
 ## Samples
 
