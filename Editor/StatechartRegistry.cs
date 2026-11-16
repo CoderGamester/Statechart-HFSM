@@ -1,22 +1,24 @@
-#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.StatechartMachine.Internal
+namespace GameLovers.StatechartMachine.Editor
 {
 	/// <summary>
-	/// A trace step copied without a reference to its statechart, so recorded history never keeps a chart alive.
+	/// A trace step copied as ids and text, so recorded history never keeps a chart or its states alive.
 	/// </summary>
 	internal readonly struct StatechartTraceRecord
 	{
 		public readonly double Time;
 		public readonly int Frame;
 		public readonly StatechartTraceKind Kind;
-		public readonly StateNode State;
-		public readonly StateNode Target;
+		public readonly uint StateId;
+		public readonly uint TargetId;
+		public readonly string StatePath;
+		public readonly string TargetPath;
 		public readonly string EventName;
 		public readonly string Message;
 
@@ -25,17 +27,20 @@ namespace GameLovers.StatechartMachine.Internal
 			Time = time;
 			Frame = frame;
 			Kind = trace.Kind;
-			State = trace.State;
-			Target = trace.Target;
+			StateId = trace.State?.Id ?? 0;
+			TargetId = trace.Target?.Id ?? 0;
+			StatePath = trace.State?.Path;
+			TargetPath = trace.Target?.Path;
 			EventName = trace.Event?.Name;
 			Message = trace.ToString();
 		}
 	}
 
 	/// <summary>
-	/// Editor-only list of live statecharts and their recent trace history, read by the Statechart Debugger.
+	/// List of live statecharts and their recent trace history, read by the Statechart Debugger.
 	/// Charts are held weakly, so a chart that is never disposed still disappears once it is collected.
 	/// </summary>
+	[InitializeOnLoad]
 	internal static class StatechartRegistry
 	{
 		internal const int HistoryCapacity = 256;
@@ -73,7 +78,7 @@ namespace GameLovers.StatechartMachine.Internal
 				return _chart.TryGetTarget(out chart);
 			}
 
-			/// <summary>Appends a copy of <paramref name="trace"/>, dropping the oldest step when full.</summary>
+			/// <summary>Records <paramref name="trace"/>; a Disposed trace also leaves the registry.</summary>
 			internal void Record(StatechartTrace trace)
 			{
 				if (_history.Count == HistoryCapacity)
@@ -83,7 +88,18 @@ namespace GameLovers.StatechartMachine.Internal
 
 				_history.Enqueue(new StatechartTraceRecord(trace, Time.realtimeSinceStartupAsDouble, Time.frameCount));
 				Version++;
+
+				if (trace.Kind == StatechartTraceKind.Disposed && _entries.Remove(this))
+				{
+					Changed?.Invoke();
+				}
 			}
+		}
+
+		static StatechartRegistry()
+		{
+			Statechart.Created += Register;
+			EditorApplication.playModeStateChanged += OnPlayModeChanged;
 		}
 
 		/// <summary>
@@ -99,8 +115,7 @@ namespace GameLovers.StatechartMachine.Internal
 			return _entries;
 		}
 
-		/// <summary>Adds <paramref name="chart"/> and starts recording its traces.</summary>
-		internal static void Register(IStatechart chart)
+		private static void Register(Statechart chart)
 		{
 			var entry = new Entry(chart);
 
@@ -110,20 +125,16 @@ namespace GameLovers.StatechartMachine.Internal
 			Changed?.Invoke();
 		}
 
-		/// <summary>Removes <paramref name="chart"/> and any collected entries.</summary>
-		internal static void Unregister(IStatechart chart)
+		private static void OnPlayModeChanged(PlayModeStateChange change)
 		{
-			_entries.RemoveAll(e => !e.TryGetChart(out var c) || ReferenceEquals(c, chart));
-			Changed?.Invoke();
-		}
+			if (change != PlayModeStateChange.ExitingEditMode)
+			{
+				return;
+			}
 
-		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-		private static void ResetOnPlay()
-		{
-			// Keeps entries from a previous play session out when domain reload is disabled.
+			// Keeps charts from a previous play session out when domain reload is disabled.
 			_entries.Clear();
 			Changed?.Invoke();
 		}
 	}
 }
-#endif

@@ -81,20 +81,11 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new ArgumentNullException(nameof(statechartEvent), $"The state {Name} cannot have a null event");
 			}
 
-			var transition = new Transition();
+			var transition = CreateTransition(TransitionKind.Event, statechartEvent);
 
 			_events.Add(statechartEvent, transition);
 
 			return transition;
-		}
-
-		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			foreach (var pair in _events)
-			{
-				results.Add(new TransitionInfo(pair.Value, pair.Key, TransitionKind.Event));
-			}
 		}
 
 		/// <inheritdoc />

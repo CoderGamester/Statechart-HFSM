@@ -4,21 +4,17 @@ using System.Text;
 
 // ReSharper disable CheckNamespace
 
-namespace GameLovers.StatechartMachine
+namespace GameLovers.StatechartMachine.Editor
 {
 	/// <summary>
-	/// Text exports of a statechart's topology and active states, for logs, bug reports and AI agents.
+	/// Text exports of a statechart's topology and active states, for the Statechart Debugger's Copy menu.
 	/// </summary>
-	public static class StatechartExport
+	internal static class StatechartExport
 	{
 		/// <summary>
-		/// Returns a Mermaid <c>stateDiagram-v2</c> of <paramref name="statechart"/>, with active states marked by the
-		/// <c>active</c> class. Initial and final states map to Mermaid's <c>[*]</c> markers.
+		/// Returns a Mermaid <c>stateDiagram-v2</c> of the chart with its active states classed <c>active</c>.
 		/// </summary>
-		/// <param name="statechart">The chart to export.</param>
-		/// <returns>The Mermaid source text.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="statechart"/> is null.</exception>
-		public static string ToMermaid(IStatechart statechart)
+		internal static string ToMermaid(IStatechart statechart)
 		{
 			if (statechart == null)
 			{
@@ -26,11 +22,11 @@ namespace GameLovers.StatechartMachine
 			}
 
 			var builder = new StringBuilder();
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 
 			statechart.GetActiveStates(active);
 			builder.AppendLine("stateDiagram-v2");
-			AppendRegion(builder, statechart.RootRegion, 1, new List<TransitionEdge>());
+			AppendRegion(builder, statechart.RootRegion, 1, new List<ITransitionEdge>());
 			builder.AppendLine("  classDef active fill:#9be7b0,stroke:#1d7a3d,stroke-width:2px");
 
 			var activeIds = new List<string>();
@@ -51,21 +47,15 @@ namespace GameLovers.StatechartMachine
 			return builder.ToString();
 		}
 
-		/// <summary>
-		/// Returns the active states of <paramref name="statechart"/> as one path per line, for example
-		/// <c>Gameplay/Player/Idle</c>, parents before children.
-		/// </summary>
-		/// <param name="statechart">The chart to describe.</param>
-		/// <returns>The active state paths.</returns>
-		/// <exception cref="ArgumentNullException">Thrown when <paramref name="statechart"/> is null.</exception>
-		public static string ToActivePaths(IStatechart statechart)
+		/// <summary>Returns the active state paths of the chart, one per line, parents before children.</summary>
+		internal static string ToActivePaths(IStatechart statechart)
 		{
 			if (statechart == null)
 			{
 				throw new ArgumentNullException(nameof(statechart));
 			}
 
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 			var builder = new StringBuilder();
 
 			statechart.GetActiveStates(active);
@@ -78,7 +68,8 @@ namespace GameLovers.StatechartMachine
 			return builder.ToString();
 		}
 
-		private static void AppendRegion(StringBuilder builder, RegionNode region, int depth, List<TransitionEdge> leaveEdges)
+		private static void AppendRegion(StringBuilder builder, IRegionNode region, int depth,
+		                                 List<ITransitionEdge> leaveEdges)
 		{
 			var indent = new string(' ', depth * 2);
 
@@ -98,7 +89,7 @@ namespace GameLovers.StatechartMachine
 				builder.Append(indent).Append("state \"").Append(Label(state)).Append("\" as ").Append(Id(state))
 					.AppendLine(" {");
 
-				var innerLeaves = new List<TransitionEdge>();
+				var innerLeaves = new List<ITransitionEdge>();
 
 				for (var i = 0; i < state.Regions.Count; i++)
 				{
@@ -149,17 +140,17 @@ namespace GameLovers.StatechartMachine
 			}
 		}
 
-		private static string Endpoint(StateNode state)
+		private static string Endpoint(IStateNode state)
 		{
 			return state.Kind == StateKind.Initial || state.Kind == StateKind.Final ? "[*]" : Id(state);
 		}
 
-		private static string Id(StateNode state)
+		private static string Id(IStateNode state)
 		{
 			return $"s{state.Id}";
 		}
 
-		private static string Label(StateNode state)
+		private static string Label(IStateNode state)
 		{
 			var name = state.Name.Replace("\"", "'").Replace(":", " ");
 

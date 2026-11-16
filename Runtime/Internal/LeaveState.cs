@@ -54,12 +54,6 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			results.Add(new TransitionInfo(LeaveTransition, null, TransitionKind.Leave));
-		}
-
-		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
 			return null;
@@ -84,7 +78,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new InvalidOperationException($"State {Name} already has a transition defined");
 			}
 
-			LeaveTransition = new Transition();
+			LeaveTransition = CreateTransition(TransitionKind.Leave);
 
 			return LeaveTransition;
 		}

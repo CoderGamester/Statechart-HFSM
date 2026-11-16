@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using GameLovers.StatechartMachine.Internal;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -24,7 +23,7 @@ namespace GameLovers.StatechartMachine.Editor
 		[SerializeField] private bool _showLiveChart = true;
 		[SerializeField] private bool _showTreeTrace = true;
 
-		private readonly List<StateNode> _activeStates = new List<StateNode>();
+		private readonly List<IStateNode> _activeStates = new List<IStateNode>();
 
 		private StatechartRegistry.Entry _selected;
 		private IStatechart _selectedChart;

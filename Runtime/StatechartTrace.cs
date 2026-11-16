@@ -37,12 +37,12 @@ namespace GameLovers.StatechartMachine
 		/// <summary>
 		/// The state the step is about: the exited, entered or faulted state, or a transition's source.
 		/// </summary>
-		public StateNode State { get; }
+		public IStateNode State { get; }
 		/// <summary>
 		/// The target of a <see cref="StatechartTraceKind.Transition"/>; null for action-only transitions and for
 		/// every other kind.
 		/// </summary>
-		public StateNode Target { get; }
+		public IStateNode Target { get; }
 		/// <summary>
 		/// The event being processed when the step happened, or null when the chart moved on its own.
 		/// </summary>
@@ -52,8 +52,8 @@ namespace GameLovers.StatechartMachine
 		/// </summary>
 		public Exception Exception { get; }
 
-		internal StatechartTrace(IStatechart statechart, StatechartTraceKind kind, StateNode state = null,
-		                         StateNode target = null, IStatechartEvent statechartEvent = null,
+		internal StatechartTrace(IStatechart statechart, StatechartTraceKind kind, IStateNode state = null,
+		                         IStateNode target = null, IStatechartEvent statechartEvent = null,
 		                         Exception exception = null)
 		{
 			Statechart = statechart;

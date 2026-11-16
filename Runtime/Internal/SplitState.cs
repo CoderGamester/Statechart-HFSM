@@ -13,11 +13,13 @@ namespace GameLovers.StatechartMachine.Internal
 		protected readonly IDictionary<IStatechartEvent, ITransitionInternal> _events = new Dictionary<IStatechartEvent, ITransitionInternal>();
 		protected readonly IList<InnerStateData> _innerStatesData = new List<InnerStateData>();
 
+		private readonly List<IRegionNode> _regions = new List<IRegionNode>();
+
 		private bool _isPaused;
 		private ITransitionInternal _transition;
 
 		/// <summary>The nested regions of this state and their current inner state.</summary>
-		internal IList<InnerStateData> Regions => _innerStatesData;
+		internal IList<InnerStateData> InnerStates => _innerStatesData;
 
 		public SplitState(string name, IStateFactoryInternal factory) : base(name, factory)
 		{
@@ -25,6 +27,8 @@ namespace GameLovers.StatechartMachine.Internal
 
 		/// <inheritdoc />
 		public override StateKind Kind => StateKind.Split;
+		/// <inheritdoc />
+		public override IReadOnlyList<IRegionNode> Regions => _regions;
 
 		/// <inheritdoc />
 		public override void Enter()
@@ -149,7 +153,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new ArgumentNullException(nameof(statechartEvent), $"The state {Name} cannot have a null event");
 			}
 
-			var transition = new Transition();
+			var transition = CreateTransition(TransitionKind.Event, statechartEvent);
 
 			_events.Add(statechartEvent, transition);
 
@@ -179,11 +183,11 @@ namespace GameLovers.StatechartMachine.Internal
 
 			foreach (var stateData in data)
 			{
-				var factory = new StateFactory(_stateFactory.RegionLayer + 1, _stateFactory.Data);
+				var factory = new StateFactory(this, _regions.Count, _stateFactory.RegionLayer + 1, _stateFactory.Data);
 				
 				stateData.Setup(factory);
 				
-				_stateFactory.Add(factory.States);
+				_regions.Add(factory);
 				_innerStatesData.Add(new InnerStateData
 				{
 					InitialState = factory.InitialState,
@@ -194,20 +198,9 @@ namespace GameLovers.StatechartMachine.Internal
 				});
 			}
 			
-			_transition = new Transition();
+			_transition = CreateTransition(TransitionKind.Completion);
 
 			return _transition;
-		}
-
-		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			foreach (var pair in _events)
-			{
-				results.Add(new TransitionInfo(pair.Value, pair.Key, TransitionKind.Event));
-			}
-
-			results.Add(new TransitionInfo(_transition, null, TransitionKind.Completion));
 		}
 
 		/// <inheritdoc />

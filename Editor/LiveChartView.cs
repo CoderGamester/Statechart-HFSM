@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using GameLovers.StatechartMachine.Internal;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -15,7 +14,7 @@ namespace GameLovers.StatechartMachine.Editor
 	{
 		private const double RecentSeconds = 0.8;
 
-		private readonly Dictionary<StateNode, VisualElement> _elements = new Dictionary<StateNode, VisualElement>();
+		private readonly Dictionary<IStateNode, VisualElement> _elements = new Dictionary<IStateNode, VisualElement>();
 		private readonly ScrollView _scroll;
 
 		internal LiveChartView()
@@ -46,27 +45,27 @@ namespace GameLovers.StatechartMachine.Editor
 		}
 
 		/// <summary>Highlights <paramref name="active"/> states and briefly flashes recently entered ones.</summary>
-		internal void UpdateActive(List<StateNode> active, IReadOnlyCollection<StatechartTraceRecord> history)
+		internal void UpdateActive(List<IStateNode> active, IReadOnlyCollection<StatechartTraceRecord> history)
 		{
-			var recent = new HashSet<StateNode>();
+			var recent = new HashSet<uint>();
 			var now = Time.realtimeSinceStartupAsDouble;
 
 			foreach (var record in history)
 			{
 				if (record.Kind == StatechartTraceKind.StateEntered && now - record.Time < RecentSeconds)
 				{
-					recent.Add(record.State);
+					recent.Add(record.StateId);
 				}
 			}
 
 			foreach (var pair in _elements)
 			{
 				pair.Value.EnableInClassList("sc-active", active.Contains(pair.Key));
-				pair.Value.EnableInClassList("sc-recent", recent.Contains(pair.Key));
+				pair.Value.EnableInClassList("sc-recent", recent.Contains(pair.Key.Id));
 			}
 		}
 
-		private VisualElement BuildRegion(RegionNode region, bool isLane)
+		private VisualElement BuildRegion(IRegionNode region, bool isLane)
 		{
 			var container = new VisualElement();
 
@@ -81,7 +80,7 @@ namespace GameLovers.StatechartMachine.Editor
 			return container;
 		}
 
-		private VisualElement BuildState(StateNode state)
+		private VisualElement BuildState(IStateNode state)
 		{
 			var box = new VisualElement { tooltip = $"{state.Path}\n{state.Kind}" };
 
@@ -139,7 +138,7 @@ namespace GameLovers.StatechartMachine.Editor
 			return box;
 		}
 
-		private static string EdgeLabel(TransitionEdge edge)
+		private static string EdgeLabel(ITransitionEdge edge)
 		{
 			switch (edge.Kind)
 			{

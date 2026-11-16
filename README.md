@@ -109,22 +109,21 @@ The constructor rejects a setup without an initial state in every build. Other s
 Every chart exposes its structure and its live state, so tools, tests and logs read the same data:
 
 ```csharp
-// Read-only topology, built once at construction.
+// Read-only view of the chart; it is the live chart itself, so it never goes stale.
 foreach (var state in chart.RootRegion.States)
 {
     Debug.Log($"{state.Path} ({state.Kind}) with {state.Transitions.Count} transitions");
 }
 
 // Active states, parents before children.
-var active = new List<StateNode>();
+var active = new List<IStateNode>();
 chart.GetActiveStates(active);
+
+// Is one state active right now? Allocation-free.
+var isIdle = chart.IsActive(active[0]);
 
 // Every step in execution order: events, exits, transitions, enters, faults, lifecycle.
 chart.Traced += trace => Debug.Log(trace);
-
-// Text exports for bug reports or AI agents.
-var mermaid = StatechartExport.ToMermaid(chart);
-var paths = StatechartExport.ToActivePaths(chart);
 ```
 
 Set `chart.LogsEnabled = true` (or `LogsEnabled` on a single state) to write the same trace lines to the console, for example `[Statechart 'Player'] Idle -> Jumping on 'Jump'`. Nothing is formatted or published while no one subscribes and logs are off.

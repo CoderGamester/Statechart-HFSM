@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 **New**:
 - Added the Statechart Debugger (*Tools > GameLovers > Statechart Debugger*) with three live views of a running chart: A, nested boxes; B, a Graph Toolkit graph on Unity 6000.6 and newer; and C, a state tree and trace log.
-- Added a read-only topology (`IStatechart.RootRegion`, `StateNode`, `RegionNode`, `TransitionEdge`), `GetActiveStates`, `IsActive`, `Name` and `IsRunning` to `IStatechart`.
-- Added `IStatechart.Traced`, which publishes every event, exit, transition, enter, fault and lifecycle step in execution order, and `StatechartExport.ToMermaid` / `ToActivePaths` text exports.
+- Added a read-only view of the chart (`IStatechart.RootRegion` with `IRegionNode`, `IStateNode` and `ITransitionEdge`), `GetActiveStates`, `IsActive`, `Name` and `IsRunning` to `IStatechart`. The view is the live chart itself, so it costs nothing to build.
+- Added `IStatechart.Traced`, which publishes every event, exit, transition, enter, fault and lifecycle step in execution order. The debugger's **Copy** menu exports a Mermaid diagram, the active state paths or the trace.
 - Added a `Statechart(string name, Action<IStateFactory> setup)` constructor and `IDisposable` support.
 - Added `ITaskWaitState.WaitingFor` overloads that receive a `CancellationToken`, cancelled by `Reset()` and `Dispose()`.
 - Added the **Game Flow** sample, which uses every state kind.

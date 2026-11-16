@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using GameLovers.StatechartMachine.Internal;
 using UnityEngine.UIElements;
 
 // ReSharper disable CheckNamespace
@@ -11,7 +10,7 @@ namespace GameLovers.StatechartMachine.Editor
 	/// </summary>
 	internal sealed class TreeTraceView : VisualElement
 	{
-		private readonly Dictionary<StateNode, Label> _rows = new Dictionary<StateNode, Label>();
+		private readonly Dictionary<IStateNode, Label> _rows = new Dictionary<IStateNode, Label>();
 		private readonly List<StatechartTraceRecord> _records = new List<StatechartTraceRecord>();
 		private readonly ScrollView _tree;
 		private readonly ListView _trace;
@@ -56,7 +55,7 @@ namespace GameLovers.StatechartMachine.Editor
 		}
 
 		/// <summary>Marks <paramref name="active"/> states and shows the latest <paramref name="history"/>.</summary>
-		internal void UpdateActive(List<StateNode> active, IReadOnlyCollection<StatechartTraceRecord> history)
+		internal void UpdateActive(List<IStateNode> active, IReadOnlyCollection<StatechartTraceRecord> history)
 		{
 			foreach (var pair in _rows)
 			{
@@ -76,7 +75,7 @@ namespace GameLovers.StatechartMachine.Editor
 			}
 		}
 
-		private void AddRegion(RegionNode region)
+		private void AddRegion(IRegionNode region)
 		{
 			if (region.Owner != null && region.Owner.Kind == StateKind.Split)
 			{
@@ -91,7 +90,7 @@ namespace GameLovers.StatechartMachine.Editor
 				var row = new Label { tooltip = $"{state.Path} ({state.Kind})" };
 
 				row.AddToClassList("sc-tree-row");
-				row.style.paddingLeft = state.Depth * 14 + 4;
+				row.style.paddingLeft = region.Depth * 14 + 4;
 				_rows[state] = row;
 				_tree.Add(row);
 
@@ -129,13 +128,13 @@ namespace GameLovers.StatechartMachine.Editor
 				case StatechartTraceKind.EventTriggered:
 					return $"⚡ {record.EventName}";
 				case StatechartTraceKind.StateEntered:
-					return $"→ enter {record.State?.Path}";
+					return $"→ enter {record.StatePath}";
 				case StatechartTraceKind.StateExited:
-					return $"← exit {record.State?.Path}";
+					return $"← exit {record.StatePath}";
 				case StatechartTraceKind.Transition:
-					return $"   {record.State?.Name} ⟶ {record.Target?.Name ?? "(action)"}";
+					return $"   {record.StatePath} ⟶ {record.TargetPath ?? "(action)"}";
 				case StatechartTraceKind.Faulted:
-					return $"✖ fault in {record.State?.Path}";
+					return $"✖ fault in {record.StatePath}";
 				default:
 					return record.Kind.ToString();
 			}

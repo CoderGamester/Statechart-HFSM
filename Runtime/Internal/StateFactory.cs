@@ -15,7 +15,7 @@ namespace GameLovers.StatechartMachine.Internal
 	}
 
 	/// <inheritdoc />
-	internal interface IStateFactoryInternal : IStateFactory
+	internal interface IStateFactoryInternal : IStateFactory, IRegionNode
 	{
 		/// <summary>
 		/// The Layer that this <see cref="IStateFactory"/> is building upon
@@ -30,18 +30,13 @@ namespace GameLovers.StatechartMachine.Internal
 		/// </summary>
 		FinalState FinalState { get; }
 		/// <summary>
-		/// The current list of states that this <see cref="IStateFactory"/> is building upon
+		/// The states declared directly in this region, in declaration order
 		/// </summary>
-		IList<IStateInternal> States { get; }
+		new IList<IStateInternal> States { get; }
 		/// <summary>
 		/// The <see cref="StateFactoryData"/> that this <see cref="IStateFactory"/> is building upon
 		/// </summary>
 		StateFactoryData Data { get; }
-		
-		/// <summary>
-		/// Adds the given list of <paramref name="states"/> to this <see cref="IStateFactory"/> to building upon
-		/// </summary>
-		void Add(IList<IStateInternal> states);
 	}
 
 	/// <inheritdoc />
@@ -57,26 +52,28 @@ namespace GameLovers.StatechartMachine.Internal
 		public IList<IStateInternal> States { get; private set; }
 		/// <inheritdoc />
 		public StateFactoryData Data { get; private set; }
+		/// <inheritdoc />
+		public IStateNode Owner { get; }
+		/// <inheritdoc />
+		public int Index { get; }
+		/// <inheritdoc />
+		public int Depth => (int) RegionLayer;
+
+		IStateNode IRegionNode.Initial => InitialState;
+		IReadOnlyList<IStateNode> IRegionNode.States => (List<IStateInternal>) States;
 
 		private StateFactory()
 		{
 		}
 
-		public StateFactory(uint layer, StateFactoryData data)
+		public StateFactory(IStateNode owner, int index, uint layer, StateFactoryData data)
 		{
 			States = new List<IStateInternal>();
 
+			Owner = owner;
+			Index = index;
 			Data = data;
 			RegionLayer = layer;
-		}
-
-		/// <inheritdoc />
-		public void Add(IList<IStateInternal> states)
-		{
-			for (var i = 0; i < states.Count; i++)
-			{
-				States.Add(states[i]);
-			}
 		}
 
 		/// <inheritdoc />

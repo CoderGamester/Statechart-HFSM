@@ -110,20 +110,11 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public ITransitionCondition Transition()
 		{
-			var transition = new Transition();
+			var transition = CreateTransition(TransitionKind.Choice);
 
 			_transitions.Add(transition);
 
 			return transition;
-		}
-
-		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			foreach (var transition in _transitions)
-			{
-				results.Add(new TransitionInfo(transition, null, TransitionKind.Choice));
-			}
 		}
 
 		/// <inheritdoc />

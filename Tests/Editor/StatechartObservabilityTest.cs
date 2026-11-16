@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using GameLovers.StatechartMachine;
-using GameLovers.StatechartMachine.Internal;
+using GameLovers.StatechartMachine.Editor;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -16,9 +16,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		private readonly IStatechartEvent _go = new StatechartEvent("Go");
 
 		[Test]
-		// ADMIT: StatechartTopologyBuilder.BuildRegion must place each state only in the region that declared it;
-		// the root factory also lists nested states, which would otherwise appear twice.
-		// RCR: StatechartTopologyBuilder.cs BuildRegion — `if (state.Factory != factory)` → `if (false)` → RED (nested states listed in the root region). 2026-11-15
+		// ADMIT: SplitState.Split must create each nested region owned by its state, so Owner and Path describe the
+		// nesting, and record its completion transition with the Completion kind.
+		// RCR: SplitState.cs Split — `new StateFactory(this,` → `new StateFactory(null,` → RED (Path is "Inner"). 2026-11-16
+		// RCR: SplitState.cs Split — `TransitionKind.Completion` → `TransitionKind.Automatic` → RED (kind mismatch). 2026-11-16
 		public void RootRegion_NestedSetup_DescribesEachStateOnce()
 		{
 			var statechart = new Statechart("Topology", SetupNest);
@@ -38,8 +39,10 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		// ADMIT: Statechart.GetActiveStates must walk into every region of an active split, parents first.
-		// RCR: Statechart.cs AddActive — loop bound `split.Regions.Count` → `0` → RED (only "Split" active). 2026-11-15
+		// ADMIT: Statechart.GetActiveStates must walk into every region of an active split, parents first, and
+		// IsActive must reject a state that is not active.
+		// RCR: Statechart.cs AddActive — loop bound `split.InnerStates.Count` → `0` → RED (only "Split" active). 2026-11-16
+		// RCR: Statechart.cs IsActiveWithin — final `return false;` → `return true;` → RED (Initial reported active). 2026-11-16
 		public void GetActiveStates_InsideSplit_ReturnsEveryRegionState()
 		{
 			var statechart = new Statechart("Split", factory =>
@@ -50,13 +53,14 @@ namespace GameLoversEditor.StatechartMachine.Tests
 				initial.Transition().Target(split);
 				split.Split(left => SetupRegion(left, "Left"), right => SetupRegion(right, "Right"));
 			});
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 
 			statechart.Run();
 			statechart.GetActiveStates(active);
 
 			Assert.AreEqual(new[] { "Split", "Split/Left", "Split/Right" }, active.Select(state => state.Path));
 			Assert.IsTrue(statechart.IsActive(active[2]));
+			Assert.IsFalse(statechart.IsActive(statechart.RootRegion.States[0]));
 		}
 
 		[Test]
@@ -115,7 +119,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 		[Test]
 		// ADMIT: StatechartExport.ToMermaid must draw nested regions as a composite state and mark active states.
-		// RCR: StatechartExport.cs ToMermaid — drop the `class ... active` line → RED (class line missing). 2026-11-15
+		// RCR: StatechartExport.cs ToMermaid — drop the `class ... active` line → RED (class line missing). 2026-11-16
 		public void ToMermaid_NestedChart_DrawsCompositeAndActiveClass()
 		{
 			var statechart = new Statechart("Mermaid", SetupNest);
@@ -132,8 +136,9 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
-		// ADMIT: Statechart.Dispose must remove the chart from the Editor registry the debugger lists.
-		// RCR: Statechart.cs Dispose — remove `StatechartRegistry.Unregister(this);` → RED (chart still listed). 2026-11-15
+		// ADMIT: StatechartRegistry must list a new chart through Statechart.Created and drop it on its Disposed trace.
+		// RCR: Statechart.cs Statechart(string, Action) — remove `Created?.Invoke(this);` → RED (chart not listed). 2026-11-16
+		// RCR: StatechartRegistry.cs Entry.Record — disable the Disposed branch → RED (chart still listed). 2026-11-16
 		public void Dispose_RegisteredChart_LeavesRegistry()
 		{
 			var statechart = new Statechart("Registry", SetupNest);

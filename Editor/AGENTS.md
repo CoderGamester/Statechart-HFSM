@@ -6,6 +6,7 @@ This guide adds Editor-only rules to the package and host guides.
 
 - `StatechartDebuggerWindow` is a UI Toolkit `EditorWindow` under `Tools/GameLovers/Statechart Debugger`. Its toolbar acts on the selected live chart (Run, Pause, Reset); it never builds a throwaway chart.
 - Views A (`LiveChartView`), B (`GraphToolkit/StatechartGraphView`) and C (`TreeTraceView`) read the same three sources: `IStatechart.RootRegion`, `GetActiveStates`, and `StatechartRegistry.Entry.History`. Keep them side-by-side comparable; a view must not need its own runtime data.
+- `StatechartRegistry` subscribes to `Statechart.Created`. History records and the view B session keep state ids and paths, never `IStateNode` references: a node is a live state, so holding one keeps its chart alive.
 - The window refreshes on a 100 ms schedule and repaints views only when `StatechartRegistry.Version` changes. Keep per-refresh work proportional to the chart size and free of allocations beyond the active list.
 - Styles live in `StatechartDebugger.uss`, loaded by package path. Use colors that read in both Editor themes.
 

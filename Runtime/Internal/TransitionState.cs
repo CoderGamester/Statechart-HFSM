@@ -61,7 +61,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new InvalidOperationException($"State {Name} already has a transition defined");
 			}
 
-			_transition = new Transition();
+			_transition = CreateTransition(TransitionKind.Automatic);
 
 			return _transition;
 		}
@@ -86,12 +86,6 @@ namespace GameLovers.StatechartMachine.Internal
 			}
 
 			_onExit.Add(action);
-		}
-
-		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			results.Add(new TransitionInfo(_transition, null, TransitionKind.Automatic));
 		}
 
 		/// <inheritdoc />

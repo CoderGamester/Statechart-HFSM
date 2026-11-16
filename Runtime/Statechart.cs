@@ -40,7 +40,7 @@ namespace GameLovers.StatechartMachine
 		/// <summary>
 		/// The read-only topology of the chart, starting at its root region.
 		/// </summary>
-		RegionNode RootRegion { get; }
+		IRegionNode RootRegion { get; }
 
 		/// <summary>
 		/// Publishes every observable step of the chart in execution order.
@@ -78,45 +78,53 @@ namespace GameLovers.StatechartMachine
 		/// Fills <paramref name="results"/> with every active state, parents before their children.
 		/// Before <see cref="Run"/> the only active state is the root initial state.
 		/// </summary>
-		void GetActiveStates(List<StateNode> results);
+		void GetActiveStates(List<IStateNode> results);
 
 		/// <summary>
 		/// Returns true when <paramref name="state"/> is currently active.
 		/// </summary>
-		bool IsActive(StateNode state);
+		bool IsActive(IStateNode state);
 	}
 
 	/// <inheritdoc cref="IStatechart"/>
 	public class Statechart : IStatechart
 	{
-		private static uint _idRef;
+		private enum Lifecycle
+		{
+			Paused,
+			Running,
+			Disposed
+		}
 
-		private bool _isRunning;
+#if UNITY_EDITOR
+		/// <summary>Raised after every chart is constructed, so the Statechart Debugger can discover it.</summary>
+		internal static event Action<Statechart> Created;
+#endif
+
+		private Lifecycle _lifecycle;
 		private bool _isProcessing;
-		private bool _isDisposed;
-		private int _generation;
 		private IStateInternal _currentState;
 		private CancellationTokenSource _cancellation = new CancellationTokenSource();
 
 		private readonly IStateFactoryInternal _stateFactory;
 		private readonly Queue<IStatechartEvent> _pendingEvents = new Queue<IStatechartEvent>();
-		private readonly List<StateNode> _activeBuffer = new List<StateNode>();
 
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
 		/// <inheritdoc />
 		public string Name { get; }
 		/// <inheritdoc />
-		public bool IsRunning => _isRunning;
+		public bool IsRunning => _lifecycle == Lifecycle.Running;
 		/// <inheritdoc />
-		public RegionNode RootRegion { get; }
+		public IRegionNode RootRegion => _stateFactory;
 
 		/// <inheritdoc />
 		public event Action<StatechartTrace> Traced;
 
-		/// <summary>Changes on every Reset/Dispose so stale wait and task completions can be ignored.</summary>
-		internal int Generation => _generation;
-		/// <summary>Cancelled on Reset/Dispose; passed to token-aware task waits.</summary>
+		/// <summary>
+		/// Cancelled on Reset/Dispose. Waits and tasks capture it when they start and ignore their completion once it
+		/// is cancelled, and token-aware task waits receive it.
+		/// </summary>
 		internal CancellationToken CancellationToken => _cancellation.Token;
 		/// <summary>True when a trace would reach a subscriber or the console.</summary>
 		internal bool HasTraceListeners => Traced != null || LogsEnabled;
@@ -132,9 +140,9 @@ namespace GameLovers.StatechartMachine
 				throw new ArgumentNullException(nameof(setup));
 			}
 
-			Name = string.IsNullOrEmpty(name) ? $"Statechart {++_idRef}" : name;
+			Name = string.IsNullOrEmpty(name) ? nameof(Statechart) : name;
 
-			var stateFactory = new StateFactory(0, new StateFactoryData { Statechart = this, StateChartMoveNextCall = MoveNext });
+			var stateFactory = new StateFactory(null, 0, 0, new StateFactoryData { Statechart = this, StateChartMoveNextCall = MoveNext });
 
 			setup(stateFactory);
 
@@ -153,17 +161,15 @@ namespace GameLovers.StatechartMachine
 				_stateFactory.States[i].Validate();
 			}
 #endif
-			RootRegion = StatechartTopologyBuilder.Build(_stateFactory);
-
 #if UNITY_EDITOR
-			StatechartRegistry.Register(this);
+			Created?.Invoke(this);
 #endif
 		}
 
 		/// <inheritdoc />
 		public void Trigger(IStatechartEvent trigger)
 		{
-			if (!_isRunning)
+			if (!IsRunning)
 			{
 				return;
 			}
@@ -174,12 +180,12 @@ namespace GameLovers.StatechartMachine
 		/// <inheritdoc />
 		public void Run()
 		{
-			if (_isDisposed)
+			if (_lifecycle == Lifecycle.Disposed)
 			{
 				throw new ObjectDisposedException(Name);
 			}
 
-			_isRunning = true;
+			_lifecycle = Lifecycle.Running;
 
 			Emit(new StatechartTrace(this, StatechartTraceKind.Started));
 			MoveNext(null);
@@ -188,12 +194,12 @@ namespace GameLovers.StatechartMachine
 		/// <inheritdoc />
 		public void Pause()
 		{
-			if (!_isRunning)
+			if (!IsRunning)
 			{
 				return;
 			}
 
-			_isRunning = false;
+			_lifecycle = Lifecycle.Paused;
 
 			Emit(new StatechartTrace(this, StatechartTraceKind.Paused));
 		}
@@ -201,7 +207,7 @@ namespace GameLovers.StatechartMachine
 		/// <inheritdoc />
 		public void Reset()
 		{
-			if (_isDisposed)
+			if (_lifecycle == Lifecycle.Disposed)
 			{
 				return;
 			}
@@ -219,26 +225,21 @@ namespace GameLovers.StatechartMachine
 		/// </summary>
 		public void Dispose()
 		{
-			if (_isDisposed)
+			if (_lifecycle == Lifecycle.Disposed)
 			{
 				return;
 			}
 
-			_isRunning = false;
-			_isDisposed = true;
+			_lifecycle = Lifecycle.Disposed;
 
 			AbandonPendingWork();
 			Emit(new StatechartTrace(this, StatechartTraceKind.Disposed));
 
 			Traced = null;
-
-#if UNITY_EDITOR
-			StatechartRegistry.Unregister(this);
-#endif
 		}
 
 		/// <inheritdoc />
-		public void GetActiveStates(List<StateNode> results)
+		public void GetActiveStates(List<IStateNode> results)
 		{
 			if (results == null)
 			{
@@ -250,16 +251,9 @@ namespace GameLovers.StatechartMachine
 		}
 
 		/// <inheritdoc />
-		public bool IsActive(StateNode state)
+		public bool IsActive(IStateNode state)
 		{
-			if (state == null)
-			{
-				return false;
-			}
-
-			GetActiveStates(_activeBuffer);
-
-			return _activeBuffer.Contains(state);
+			return state != null && IsActiveWithin(_currentState, state);
 		}
 
 		/// <inheritdoc />
@@ -285,18 +279,18 @@ namespace GameLovers.StatechartMachine
 			}
 		}
 
-		private static void AddActive(IStateInternal state, List<StateNode> results)
+		private static void AddActive(IStateInternal state, List<IStateNode> results)
 		{
-			results.Add(state.Node);
+			results.Add(state);
 
 			if (state is not SplitState split)
 			{
 				return;
 			}
 
-			for (var i = 0; i < split.Regions.Count; i++)
+			for (var i = 0; i < split.InnerStates.Count; i++)
 			{
-				var current = split.Regions[i].CurrenState;
+				var current = split.InnerStates[i].CurrenState;
 
 				if (current != null)
 				{
@@ -305,17 +299,41 @@ namespace GameLovers.StatechartMachine
 			}
 		}
 
+		private static bool IsActiveWithin(IStateInternal current, IStateNode state)
+		{
+			if (ReferenceEquals(current, state))
+			{
+				return true;
+			}
+
+			if (current is not SplitState split)
+			{
+				return false;
+			}
+
+			for (var i = 0; i < split.InnerStates.Count; i++)
+			{
+				var inner = split.InnerStates[i].CurrenState;
+
+				if (inner != null && IsActiveWithin(inner, state))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		private void AbandonPendingWork()
 		{
-			_generation++;
 			_pendingEvents.Clear();
+			// Not disposed: abandoned waits still read their captured token, and a timer-free source owns nothing.
 			_cancellation.Cancel();
-			_cancellation.Dispose();
 		}
 
 		private void MoveNext(IStatechartEvent trigger)
 		{
-			if (!_isRunning)
+			if (!IsRunning)
 			{
 				return;
 			}
@@ -337,7 +355,7 @@ namespace GameLovers.StatechartMachine
 			{
 				Process(trigger);
 
-				while (_isRunning && _pendingEvents.Count > 0)
+				while (IsRunning && _pendingEvents.Count > 0)
 				{
 					Process(_pendingEvents.Dequeue());
 				}
@@ -350,20 +368,20 @@ namespace GameLovers.StatechartMachine
 
 		private void Process(IStatechartEvent trigger)
 		{
-			var generation = _generation;
+			var token = _cancellation.Token;
 
 			if (trigger != null)
 			{
-				Emit(new StatechartTrace(this, StatechartTraceKind.EventTriggered, _currentState.Node, null, trigger));
+				Emit(new StatechartTrace(this, StatechartTraceKind.EventTriggered, _currentState, null, trigger));
 			}
 
 			var nextState = _currentState.Trigger(trigger);
 
-			while (nextState != null && generation == _generation)
+			while (nextState != null && !token.IsCancellationRequested)
 			{
 				_currentState = nextState;
 
-				if (!_isRunning)
+				if (!IsRunning)
 				{
 					// Paused from a callback: the entered state is processed again on the next Run().
 					return;

@@ -26,7 +26,7 @@ namespace GameLovers.StatechartMachine.Samples.GameFlow
 		private readonly IStatechartEvent _quit = new StatechartEvent("Quit");
 		private readonly IStatechartEvent _retry = new StatechartEvent("Retry");
 		private readonly Queue<string> _activity = new Queue<string>();
-		private readonly List<StateNode> _active = new List<StateNode>();
+		private readonly List<IStateNode> _active = new List<IStateNode>();
 
 		private IStatechart _statechart;
 		private int _wave;

@@ -65,8 +65,8 @@ Benchmarks use the inverted check: removing the workload from the measured body 
 ## Current suite
 
 - All tests live under `Tests/Editor/` in `GameLovers.Statechart.Editor.Tests`; there is no PlayMode or performance assembly.
-- The test assembly references Statechart, UniTask, NUnit, and NSubstitute.
-- `Runtime/AssemblyInfo.cs` grants internals to this assembly for helpers with no public surface (`StatechartUtils`, `StatechartRegistry`). Prefer the public interfaces, topology and `Traced` for everything else.
+- The test assembly references Statechart, Statechart.Editor, UniTask, NUnit, and NSubstitute.
+- `Runtime/AssemblyInfo.cs` and `Editor/AssemblyInfo.cs` grant internals to this assembly for helpers with no public surface (`StatechartUtils`, `StatechartRegistry`, `StatechartExport`). Prefer the public interfaces, `RootRegion` and `Traced` for everything else.
 - `StatechartLifecycleTest` covers run-to-completion queueing, pause, reset, dispose and faults; `StatechartObservabilityTest` covers topology, active states, trace order, logs, exports and the registry.
 
 ## Package conventions

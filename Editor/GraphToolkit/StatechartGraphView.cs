@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using GameLovers.StatechartMachine.Internal;
 using Unity.GraphToolkit.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -34,23 +33,10 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 			public Hash128 GraphId;
 			public double LastRecordTime = -1;
 			public int AppliedVersion = -1;
-			public readonly Dictionary<StateNode, NodeIds> Nodes = new Dictionary<StateNode, NodeIds>();
-			public readonly Dictionary<Hash128, StateNode> States = new Dictionary<Hash128, StateNode>();
-			public readonly List<StateNode> Active = new List<StateNode>();
-		}
-
-		private readonly struct NodeIds
-		{
-			public readonly Hash128 Node;
-			public readonly Hash128 In;
-			public readonly Hash128 Out;
-
-			public NodeIds(Hash128 node, Hash128 inPort, Hash128 outPort)
-			{
-				Node = node;
-				In = inPort;
-				Out = outPort;
-			}
+			// Ids and kinds only: the session outlives play sessions and must not keep a chart's states alive.
+			public readonly Dictionary<Hash128, (uint Id, StateKind Kind)> States =
+				new Dictionary<Hash128, (uint Id, StateKind Kind)>();
+			public readonly List<IStateNode> Active = new List<IStateNode>();
 		}
 
 		static StatechartGraphView()
@@ -76,7 +62,7 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 				graph.RemoveNode(node);
 			}
 
-			var nodes = new Dictionary<StateNode, StatechartStateNode>();
+			var nodes = new Dictionary<IStateNode, StatechartStateNode>();
 
 			LayoutRegion(graph, chart.RootRegion, 0f, 0f, nodes);
 			ConnectTransitions(graph, nodes);
@@ -85,10 +71,7 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 
 			foreach (var pair in nodes)
 			{
-				_session.Nodes[pair.Key] = new NodeIds(pair.Value.ID,
-					pair.Value.GetInputPortByName(StatechartStateNode.InPort).ID,
-					pair.Value.GetOutputPortByName(StatechartStateNode.OutPort).ID);
-				_session.States[pair.Value.ID] = pair.Key;
+				_session.States[pair.Value.ID] = (pair.Key.Id, pair.Key.Kind);
 			}
 
 			_session.GraphId = graph.ID;
@@ -97,8 +80,8 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 			return path;
 		}
 
-		private static float LayoutRegion(StatechartDebugGraph graph, RegionNode region, float x, float y,
-		                                  Dictionary<StateNode, StatechartStateNode> nodes)
+		private static float LayoutRegion(StatechartDebugGraph graph, IRegionNode region, float x, float y,
+		                                  Dictionary<IStateNode, StatechartStateNode> nodes)
 		{
 			var column = x;
 
@@ -128,7 +111,8 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 			return nextY;
 		}
 
-		private static void ConnectTransitions(StatechartDebugGraph graph, Dictionary<StateNode, StatechartStateNode> nodes)
+		private static void ConnectTransitions(StatechartDebugGraph graph,
+		                                       Dictionary<IStateNode, StatechartStateNode> nodes)
 		{
 			foreach (var pair in nodes)
 			{
@@ -174,15 +158,7 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 				return;
 			}
 
-			var nodes = new Dictionary<StateNode, StatechartStateNode>();
-
-			foreach (var node in graph.GetNodes())
-			{
-				if (node is StatechartStateNode stateNode && _session.States.TryGetValue(stateNode.ID, out var state))
-				{
-					nodes[state] = stateNode;
-				}
-			}
+			var nodes = new Dictionary<uint, StatechartStateNode>();
 
 			chart.GetActiveStates(_session.Active);
 
@@ -190,15 +166,25 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 			// render on Unity 6000.6, so the highlight is written to the display-only graph itself.
 			graph.UndoBeginRecordGraph("Statechart Debugger highlight");
 
-			foreach (var pair in nodes)
+			foreach (var node in graph.GetNodes())
 			{
-				var color = _session.Active.Contains(pair.Key) ? _activeColor : Dim(ColorFor(pair.Key.Kind));
-
-				if (pair.Value.DefaultColor != color)
+				if (node is not StatechartStateNode stateNode ||
+				    !_session.States.TryGetValue(stateNode.ID, out var state))
 				{
-					pair.Value.DefaultColor = color;
+					continue;
+				}
+
+				var color = ContainsId(_session.Active, state.Id) ? _activeColor : Dim(ColorFor(state.Kind));
+
+				nodes[state.Id] = stateNode;
+
+				if (stateNode.DefaultColor != color)
+				{
+					stateNode.DefaultColor = color;
 				}
 			}
+
+			_session.Active.Clear();
 
 			foreach (var record in _session.Entry.History)
 			{
@@ -209,8 +195,8 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 
 				_session.LastRecordTime = record.Time;
 
-				if (record.Kind == StatechartTraceKind.Transition && record.State != null && record.Target != null &&
-				    nodes.TryGetValue(record.State, out var source) && nodes.TryGetValue(record.Target, out var target))
+				if (record.Kind == StatechartTraceKind.Transition && nodes.TryGetValue(record.StateId, out var source) &&
+				    nodes.TryGetValue(record.TargetId, out var target))
 				{
 					// Taken transitions stay thick, so the path the chart walked remains visible.
 					var wire = graph.GetWire(source.GetOutputPortByName(StatechartStateNode.OutPort),
@@ -225,6 +211,19 @@ namespace GameLovers.StatechartMachine.Editor.GraphToolkit
 
 			graph.UndoEndRecordGraph();
 			_session.AppliedVersion = StatechartRegistry.Version;
+		}
+
+		private static bool ContainsId(List<IStateNode> states, uint id)
+		{
+			foreach (var state in states)
+			{
+				if (state.Id == id)
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		private static Graph FindOpenGraph(Hash128 graphId)

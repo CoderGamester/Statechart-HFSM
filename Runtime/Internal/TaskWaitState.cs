@@ -143,18 +143,12 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			results.Add(new TransitionInfo(_transition, null, TransitionKind.Completion));
-		}
-
-		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
 			if (!_triggered)
 			{
 				_triggered = true;
-				InnerTaskAwait(_enterCount, Chart.Generation, Chart.CancellationToken).Forget();
+				InnerTaskAwait(_enterCount, Chart.CancellationToken).Forget();
 			}
 
 			return Completed ? _transition : null;
@@ -171,7 +165,7 @@ namespace GameLovers.StatechartMachine.Internal
 		private ITransition SetAwaitAction(Func<CancellationToken, UniTask> taskAwaitAction)
 		{
 			_taskAwaitAction = taskAwaitAction;
-			_transition = new Transition();
+			_transition = CreateTransition(TransitionKind.Completion);
 
 			return _transition;
 		}
@@ -183,7 +177,7 @@ namespace GameLovers.StatechartMachine.Internal
 			await task;
 		}
 
-		private async UniTaskVoid InnerTaskAwait(int enterCount, int generation, CancellationToken token)
+		private async UniTaskVoid InnerTaskAwait(int enterCount, CancellationToken token)
 		{
 			try
 			{
@@ -203,7 +197,7 @@ namespace GameLovers.StatechartMachine.Internal
 			// Task continuations may resume on a worker thread; the chart and its callbacks only run on the main thread.
 			await UniTask.SwitchToMainThread();
 
-			if (enterCount != _enterCount || generation != Chart.Generation)
+			if (enterCount != _enterCount || token.IsCancellationRequested)
 			{
 				return;
 			}

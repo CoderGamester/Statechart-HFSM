@@ -64,7 +64,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: Statechart.Process must stop a chain of automatic transitions when a callback pauses the chart,
 		// and resume it on the next Run.
-		// RCR: Statechart.cs Process — disable the `if (!_isRunning)` return in the chain loop → RED ("End enter" before the second Run). 2026-11-15
+		// RCR: Statechart.cs Process — disable the `if (!IsRunning)` return in the chain loop → RED ("End enter" before the second Run). 2026-11-16
 		public void Pause_FromEnterCallback_StopsChainUntilRun()
 		{
 			IStatechart statechart = null;
@@ -91,6 +91,34 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		}
 
 		[Test]
+		// ADMIT: Statechart.Process must stop a chain of automatic transitions when a callback resets the chart;
+		// continuing it overwrites the reset with the stale next state.
+		// RCR: Statechart.cs Process — drop `&& !token.IsCancellationRequested` from the chain loop → RED ("End enter"). Also reddened by removing `_cancellation.Cancel();`. 2026-11-16
+		public void Reset_FromEnterCallback_StopsChainAtInitial()
+		{
+			IStatechart statechart = null;
+			var active = new List<IStateNode>();
+
+			statechart = new Statechart(factory =>
+			{
+				var initial = factory.Initial("Initial");
+				var resetting = factory.Transition("Resetting");
+				var end = factory.State("End");
+
+				initial.Transition().Target(resetting);
+				resetting.OnEnter(() => statechart.Reset());
+				resetting.Transition().Target(end);
+				end.OnEnter(() => _log.Add("End enter"));
+			});
+
+			statechart.Run();
+			statechart.GetActiveStates(active);
+
+			Assert.IsEmpty(_log);
+			Assert.AreEqual(StateKind.Initial, active[0].Kind);
+		}
+
+		[Test]
 		// ADMIT: TaskWaitState.InnerTaskAwait must complete the state when the awaited task throws; otherwise the
 		// chart stays in the task state forever.
 		// RCR: TaskWaitState.cs InnerTaskAwait — `return;` after ReportFault → RED (Final never entered). 2026-11-15
@@ -109,11 +137,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		[Test]
 		// ADMIT: TaskWaitState.InnerTaskAwait must ignore a task that finishes after Reset; otherwise the stale
 		// completion moves the reset chart forward.
-		// RCR: TaskWaitState.cs InnerTaskAwait — drop `|| generation != Chart.Generation` → RED (stale completion enters Final). 2026-11-15
+		// RCR: TaskWaitState.cs InnerTaskAwait — drop `|| token.IsCancellationRequested` → RED (stale completion enters Final). 2026-11-16
 		public void Reset_TaskCompletesLater_DoesNotMoveChart()
 		{
 			var statechart = new Statechart(SetupTaskWait);
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 
 			statechart.Run();
 			statechart.Reset();
@@ -127,11 +155,11 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 		[Test]
 		// ADMIT: WaitState.OnActivityComplete must ignore an activity completed after Reset, for the same reason.
-		// RCR: WaitState.cs OnActivityComplete — drop `&& _generation == Chart.Generation` → RED (active state is Wait, not Initial). 2026-11-15
+		// RCR: WaitState.cs OnActivityComplete — drop `&& !_token.IsCancellationRequested` → RED (active state is Wait, not Initial). 2026-11-16
 		public void Reset_WaitActivityCompletesLater_DoesNotMoveChart()
 		{
 			IWaitActivity activity = null;
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 			var statechart = new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");
@@ -154,7 +182,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 		[Test]
 		// ADMIT: Statechart.Dispose must cancel the token handed to token-aware task waits so their work stops.
-		// RCR: Statechart.cs AbandonPendingWork — remove `_cancellation.Cancel();` → RED (token not cancelled). 2026-11-15
+		// RCR: Statechart.cs AbandonPendingWork — remove `_cancellation.Cancel();` → RED (token not cancelled). Also reddens the Reset tests, which rely on the cancelled token. 2026-11-16
 		public void Dispose_TokenAwareTaskWait_CancelsToken()
 		{
 			var token = CancellationToken.None;
@@ -180,7 +208,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 
 		[Test]
 		// ADMIT: Statechart.Run must refuse a disposed chart instead of silently running it again.
-		// RCR: Statechart.cs Run — `if (_isDisposed)` → `if (false)` → RED (no exception). A task-wait chart hid this behind the disposed token source, hence the plain chart. 2026-11-15
+		// RCR: Statechart.cs Run — `if (_lifecycle == Lifecycle.Disposed)` → `if (false)` → RED (no exception). 2026-11-16
 		public void Run_AfterDispose_ThrowsObjectDisposedException()
 		{
 			var statechart = new Statechart(factory =>
@@ -204,7 +232,7 @@ namespace GameLoversEditor.StatechartMachine.Tests
 		// RCR: SplitState.cs OnTrigger — `if (transition.TargetState == null)` → `if (false)` → RED (inner wait advances to Final on the next event). Without the follow-up event it stays green. 2026-11-15
 		public void Split_ActionOnlyEvent_KeepsInnerWaitRunning()
 		{
-			var active = new List<StateNode>();
+			var active = new List<IStateNode>();
 			var statechart = new Statechart(factory =>
 			{
 				var initial = factory.Initial("Initial");

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 // ReSharper disable CheckNamespace
 
@@ -12,7 +13,7 @@ namespace GameLovers.StatechartMachine.Internal
 		private IWaitActivityInternal _waitingActivity;
 		private Action<IWaitActivity> _waitAction;
 		private bool _triggered;
-		private int _generation;
+		private CancellationToken _token;
 
 		private readonly IList<Action> _onEnter = new List<Action>();
 		private readonly IList<Action> _onExit = new List<Action>();
@@ -41,7 +42,7 @@ namespace GameLovers.StatechartMachine.Internal
 			// It needs to create a new activity everytime on to make sure old activities don't override new ones
 			_waitingActivity = new WaitActivity(OnActivityComplete);
 			_triggered = false;
-			_generation = Chart.Generation;
+			_token = Chart.CancellationToken;
 
 			for (int i = 0; i < _onEnter.Count; i++)
 			{
@@ -118,7 +119,7 @@ namespace GameLovers.StatechartMachine.Internal
 				throw new ArgumentNullException(nameof(statechartEvent), $"The state {Name} cannot have a null event");
 			}
 
-			var transition = new Transition();
+			var transition = CreateTransition(TransitionKind.Event, statechartEvent);
 
 			_events.Add(statechartEvent, transition);
 
@@ -129,7 +130,7 @@ namespace GameLovers.StatechartMachine.Internal
 		public ITransition WaitingFor(Action<IWaitActivity> waitAction)
 		{
 			_waitAction = waitAction ?? throw new ArgumentNullException(nameof(waitAction), $"The state {Name} cannot have a null wait action");
-			_transition = new Transition();
+			_transition = CreateTransition(TransitionKind.Completion);
 
 			return _transition;
 		}
@@ -137,21 +138,10 @@ namespace GameLovers.StatechartMachine.Internal
 		private void OnActivityComplete(uint id)
 		{
 			// A completion that arrives after the chart was reset or disposed belongs to an abandoned wait.
-			if (id == _waitingActivity.Id && _generation == Chart.Generation)
+			if (id == _waitingActivity.Id && !_token.IsCancellationRequested)
 			{
 				_stateFactory.Data.StateChartMoveNextCall(null);
 			}
-		}
-
-		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-			foreach (var pair in _events)
-			{
-				results.Add(new TransitionInfo(pair.Value, pair.Key, TransitionKind.Event));
-			}
-
-			results.Add(new TransitionInfo(_transition, null, TransitionKind.Completion));
 		}
 
 		/// <inheritdoc />

@@ -39,12 +39,6 @@ namespace GameLovers.StatechartMachine.Internal
 		}
 
 		/// <inheritdoc />
-		public override void CollectTransitions(List<TransitionInfo> results)
-		{
-
-		}
-
-		/// <inheritdoc />
 		protected override ITransitionInternal OnTrigger(IStatechartEvent statechartEvent)
 		{
 			return null;

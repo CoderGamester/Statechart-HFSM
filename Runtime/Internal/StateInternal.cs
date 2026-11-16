@@ -7,20 +7,8 @@ using UnityEngine;
 namespace GameLovers.StatechartMachine.Internal
 {
 	/// <inheritdoc cref="IState"/>
-	internal interface IStateInternal : IState, IEquatable<IStateInternal>
+	internal interface IStateInternal : IState, IStateNode, IEquatable<IStateInternal>
 	{
-		/// <summary>
-		/// The unique value identifying this state
-		/// </summary>
-		uint Id { get; }
-		/// <summary>
-		/// The string representation identifying this state
-		/// </summary>
-		string Name { get; }
-		/// <summary>
-		/// The kind of state, as exposed by the public topology
-		/// </summary>
-		StateKind Kind { get; }
 		/// <summary>
 		/// The layer in the nested setup this state is in. If in the root then the value will be 0
 		/// </summary>
@@ -29,10 +17,6 @@ namespace GameLovers.StatechartMachine.Internal
 		/// The factory that created this state, identifying its region
 		/// </summary>
 		IStateFactoryInternal Factory { get; }
-		/// <summary>
-		/// The public description of this state, assigned once the statechart topology is built
-		/// </summary>
-		StateNode Node { get; set; }
 		/// <summary>
 		/// The stack trace when this setup was created. Relevant for debugging purposes
 		/// </summary>
@@ -64,10 +48,6 @@ namespace GameLovers.StatechartMachine.Internal
 		/// It requires the <see cref="IStatechart"/> to run at runtime.
 		/// </summary>
 		void Validate();
-		/// <summary>
-		/// Adds every outgoing transition of this state to <paramref name="results"/>
-		/// </summary>
-		void CollectTransitions(List<TransitionInfo> results);
 	}
 
 	/// <inheritdoc />
@@ -76,6 +56,9 @@ namespace GameLovers.StatechartMachine.Internal
 		protected readonly IStateFactoryInternal _stateFactory;
 
 		private static uint _idRef;
+
+		private readonly List<Transition> _transitions = new List<Transition>();
+		private string _path;
 
 		/// <inheritdoc />
 		public bool LogsEnabled { get; set; }
@@ -90,9 +73,15 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <inheritdoc />
 		public IStateFactoryInternal Factory => _stateFactory;
 		/// <inheritdoc />
-		public StateNode Node { get; set; }
-		/// <inheritdoc />
 		public string CreationStackTrace { get; }
+		/// <inheritdoc />
+		public IRegionNode Region => _stateFactory;
+		/// <inheritdoc />
+		public string Path => _path ??= Region.Owner == null ? Name : $"{Region.Owner.Path}/{Name}";
+		/// <inheritdoc />
+		public virtual IReadOnlyList<IRegionNode> Regions => Array.Empty<IRegionNode>();
+		/// <inheritdoc />
+		public IReadOnlyList<ITransitionEdge> Transitions => _transitions;
 
 		/// <summary>The statechart that owns this state.</summary>
 		protected Statechart Chart => _stateFactory.Data.Statechart;
@@ -200,8 +189,18 @@ namespace GameLovers.StatechartMachine.Internal
 		public abstract void Exit();
 		/// <inheritdoc />
 		public abstract void Validate();
-		/// <inheritdoc />
-		public abstract void CollectTransitions(List<TransitionInfo> results);
+
+		/// <summary>
+		/// Creates an outgoing transition of this state and records it in <see cref="Transitions"/>.
+		/// </summary>
+		protected Transition CreateTransition(TransitionKind kind, IStatechartEvent statechartEvent = null)
+		{
+			var transition = new Transition(this, kind, statechartEvent);
+
+			_transitions.Add(transition);
+
+			return transition;
+		}
 
 		/// <summary>
 		/// Returns the transition this state takes for the given event, or null when it does not handle it.
@@ -211,7 +210,7 @@ namespace GameLovers.StatechartMachine.Internal
 		/// <summary>
 		/// Publishes a trace about this state when the chart has a listener or this state's logs are enabled.
 		/// </summary>
-		protected void Trace(StatechartTraceKind kind, StateNode target, IStatechartEvent statechartEvent,
+		protected void Trace(StatechartTraceKind kind, IStateNode target, IStatechartEvent statechartEvent,
 		                     Exception exception = null)
 		{
 			var chart = Chart;
@@ -221,7 +220,7 @@ namespace GameLovers.StatechartMachine.Internal
 				return;
 			}
 
-			chart.Emit(new StatechartTrace(chart, kind, Node, target, statechartEvent, exception), LogsEnabled);
+			chart.Emit(new StatechartTrace(chart, kind, this, target, statechartEvent, exception), LogsEnabled);
 		}
 
 		/// <summary>
@@ -240,7 +239,7 @@ namespace GameLovers.StatechartMachine.Internal
 
 		private void TriggerTransition(ITransitionInternal transition, IStatechartEvent statechartEvent)
 		{
-			Trace(StatechartTraceKind.Transition, transition.TargetState?.Node, statechartEvent);
+			Trace(StatechartTraceKind.Transition, transition.TargetState, statechartEvent);
 
 			try
 			{
